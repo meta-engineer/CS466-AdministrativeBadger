@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">ES</string>
+    <string name="play_button">Create Game</string>
+    <string name="gameActivity_name">Game Activity</string>
+</resources>
