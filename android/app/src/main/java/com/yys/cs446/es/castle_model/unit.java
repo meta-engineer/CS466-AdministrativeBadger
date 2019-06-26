@@ -1,4 +1,4 @@
-package castle_model;
+package com.yys.cs446.es.castle_model;
 
 abstract public class unit {
 	public enum Command {

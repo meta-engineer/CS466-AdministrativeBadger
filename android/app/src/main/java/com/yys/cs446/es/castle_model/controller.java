@@ -17,7 +17,7 @@ public class controller {
 
         int spawnX = 7;
         int spawnY = 7;
-        playerOne = new castle_model.player(g, spawnX, spawnY);
+        playerOne = new player(g, spawnX, spawnY);
 
         // init states
         view.update(g, playerOne);

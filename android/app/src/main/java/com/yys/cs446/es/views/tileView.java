@@ -19,6 +19,7 @@ import com.yys.cs446.es.R;
 import com.yys.cs446.es.castle_model.grid;
 import com.yys.cs446.es.castle_model.player;
 
+
 public class tileView extends View {
 
     // class variables
@@ -31,6 +32,7 @@ public class tileView extends View {
     private float lastOffsetX;
     private float lastOffsetY;
     private grid myGrid = null;
+
     private player myPlayer = null;
 
     private Bitmap grassTileBitmap;
@@ -42,8 +44,11 @@ public class tileView extends View {
     private Bitmap playerSelectTileBitmap;
     private Bitmap fogTileBitmap;
 
-    private float tileWidth = 0;
-    private float tileHeight = 0;
+    private Bitmap worker1Bitmap;
+    private Bitmap worker2Bitmap;
+
+    private float tileWidth = 170;
+    private float tileHeight = 300;
 
 
     public tileView(Context context) {
@@ -84,6 +89,9 @@ public class tileView extends View {
         playerSelectTileBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.tile_selected);
         fogTileBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.fog);
 
+        worker1Bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.worker1);
+        worker2Bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.worker2);
+
 
         // when ui is built get dimensions
         getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -108,12 +116,15 @@ public class tileView extends View {
                 tileWidth = grassTileBitmap.getWidth();
                 tileHeight = grassTileBitmap.getHeight();
 
-             }
+
+                worker1Bitmap = getResizedBitmap(worker1Bitmap, (int)tileWidth / 2, (int)tileHeight / 3);
+                worker2Bitmap = getResizedBitmap(worker2Bitmap, (int)tileWidth / 2, (int)tileHeight / 3);
+            }
         });
 
     }
 
-    public void update(castle_model.grid g, castle_model.player p) {
+    public void update(grid g, player p) {
         myGrid = g;
         myPlayer = p;
         // generate tooltip text?
@@ -135,15 +146,21 @@ public class tileView extends View {
     }
 
     public void interact() {
+        toggleSelect = !toggleSelect;
         postInvalidate();
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
+
+        //canvas.drawRect(xRectSquare, xPaintSquare);
+
         if (myGrid == null) {
+
+            canvas.drawBitmap(grassTileBitmap, 0, 0, null);
             return;
         }
-        canvas.drawBitmap(grassTileBitmap, 0, 0, null);
+
         /*
         base_tile[][] gridArray = myGrid.getGrid();
 
@@ -187,7 +204,7 @@ public class tileView extends View {
         }
         */
 
-        //canvas.drawText("Grain: " + Integer.toString((int)myPlayer.getOwnedResources()[1]) + " Wood: " + Integer.toString((int)myPlayer.getOwnedResources()[2]), 100, 100, xPaintSquare);
+        canvas.drawText("Grain: " + Integer.toString((int)myPlayer.getOwnedResources()[1]) + " Wood: " + Integer.toString((int)myPlayer.getOwnedResources()[2]), 100, 100, xPaintSquare);
     }
 
     @Override
@@ -199,10 +216,12 @@ public class tileView extends View {
                 lastOffsetX = event.getX();
                 lastOffsetY = event.getY();
 
-                int selectY = (int) Math.round((event.getX() - (tileWidth/2) + originX) / 0.7143 / tileWidth);
-                int selectX = (int) Math.round( ((event.getY() - (tileHeight/2) + originY) -  (selectY * tileHeight * 0.2976)) / tileHeight / 0.5813);
-                // Use selected indicies somehow
-                //myPlayer.selectTile(selectX, selectY);
+                if (toggleSelect) {
+                    toggleSelect = !toggleSelect;
+                    int selectY = (int) Math.round((event.getX() - (tileWidth/2) + originX) / 0.7143 / tileWidth);
+                    int selectX = (int) Math.round( ((event.getY() - (tileHeight/2) + originY) -  (selectY * tileHeight * 0.2976)) / tileHeight / 0.5813);
+                    myPlayer.selectTile(selectX, selectY);
+                }
                 return true;
             }
             case MotionEvent.ACTION_MOVE: {

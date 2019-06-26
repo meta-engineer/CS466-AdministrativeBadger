@@ -17,7 +17,7 @@ public class GameActivity extends AppCompatActivity {
 
         customView = (tileView) findViewById(R.id.tileView);
 
-        controller gameController = new controller(customView);
-        gameController.start();
+        //controller gameController = new controller(customView);
+        //gameController.start();
     }
 }

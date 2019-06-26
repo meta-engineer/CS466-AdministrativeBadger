@@ -1,6 +1,6 @@
-package castle_model;
+package com.yys.cs446.es.castle_model;
 
-import castle_model.grid.RESOURCES;
+import com.yys.cs446.es.castle_model.grid.RESOURCES;
 
 public class wood_tile extends special_tile{
 	// similar to grain_tile.
