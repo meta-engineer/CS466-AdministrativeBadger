@@ -1,8 +1,8 @@
 package castle_model;
 
-public class worker extends unit{
+public class Worker extends Unit{
 
-	worker(int x, int y, player p) {
+	Worker(int x, int y, Player p) {
 		super(x, y, p);
 	}
 	

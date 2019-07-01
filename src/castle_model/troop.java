@@ -1,8 +1,8 @@
 package castle_model;
 
-public class troop extends unit{
+public class Troop extends Unit{
 
-	troop(int x, int y, player p) {
+	Troop(int x, int y, Player p) {
 		super(x, y, p);
 	}
 	

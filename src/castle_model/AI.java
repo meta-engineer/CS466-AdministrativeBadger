@@ -1,7 +1,7 @@
 package castle_model;
 
-public class AI extends player{
-	public AI(grid G, int x, int y) {
+public class AI extends Player{
+	public AI(Grid G, int x, int y) {
 		super(G, 0, 0);
 	}
 	

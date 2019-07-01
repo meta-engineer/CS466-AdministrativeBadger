@@ -6,40 +6,36 @@ import java.util.LinkedHashSet;
 import java.util.PriorityQueue;
 import java.util.Set;
 
-public class player {
+public class Player {
 	private int home_x, home_y;
-	private grid g;
-	private double priority[] = new double[grid.SIZE];
+	private Grid g;
+	private double priority[] = new double[Grid.SIZE];
 
 	// for debugging purpose, the following 6 arrays are set to public, please
 	// change them to private after debugging.
-	public ArrayList<tile> owned = new ArrayList<tile>();
-	public ArrayList<tile> adjacent = new ArrayList<tile>();
-	public ArrayList<tile> visible = new ArrayList<tile>();
+	public ArrayList<Tile> owned = new ArrayList<Tile>();
+	public ArrayList<Tile> adjacent = new ArrayList<Tile>();
+	public ArrayList<Tile> visible = new ArrayList<Tile>();
 
-	public ArrayList<worker> workers = new ArrayList<worker>();
-	public ArrayList<settler> settlers = new ArrayList<settler>();
-	public ArrayList<troop> troops = new ArrayList<troop>();
+	public ArrayList<Worker> workers = new ArrayList<Worker>();
+	public ArrayList<Settler> settlers = new ArrayList<Settler>();
+	public ArrayList<Troop> troops = new ArrayList<Troop>();
 
-	// called by grid
+	// called by Grid
 	public void remove_territory(int x, int y) {
 		// TO DO
 	}
 
 	// called by add_territory
-	//checked
-	private void attach(ArrayList list, int x, int y) {
-		// System.out.println("check valid: "+ x + " "+ y);
+	private void attach(ArrayList<Tile> list, int x, int y) {
 		if (g.valid(x, y)) {
-			// System.out.println(x + " "+ y + " is valid");
 			list.add(g.piece(x, y));
 		}
 	}
 	
 	// called by add_territory
-	//checked
 	private void remove_duplicate() {
-		Set<tile> set = new LinkedHashSet<>();
+		Set<Tile> set = new LinkedHashSet<>();
 		set.addAll(owned);
 		owned.clear();
 		owned.addAll(set);
@@ -57,10 +53,9 @@ public class player {
 
 	}
 
-	
-	// called by grid and constructor
-	//checked
+	// called by Grid and constructor
 	public void add_territory(int x, int y) {
+		g.piece(x, y).set_owner(this);
 		attach(owned, x, y);
 		attach(adjacent, x - 1, y - 1);
 		attach(adjacent, x - 1, y);
@@ -87,21 +82,28 @@ public class player {
 	}
 
 	//checked
-	public player(grid G, int x, int y) {
+	public Player(Grid G, int x, int y) {
 		g = G;
 		home_x = x;
 		home_y = y;
 		add_territory(x, y);
+		g.add_player(this);
 	}
 
+	private Tile[] path_to(Tile t) {
+		Tile[] answer = new Tile[2];
+		return answer;
+	}
+	
 	// called by UI
-	public void collect(grid.RESOURCES type) {
-		Comparator<tile> comp = new tile_comparator(type);
-		PriorityQueue<tile> queue = new PriorityQueue<tile>(comp);
+	// get path
+	public void collect(Grid.RESOURCES type) {
+		Comparator<Tile> comp = new Tile_comparator(type);
+		PriorityQueue<Tile> queue = new PriorityQueue<Tile>(comp);
 		queue.addAll(owned);
 		// TO DO : better way of arranging workers, or better style
 		for (int i = 0; i < workers.size(); ++i) {
-			workers.get(i).order_move(queue.poll());
+			workers.get(i).order_move(path_to(queue.poll()));
 			// this ensures that the program wont crash. subject to change.
 			if (queue.isEmpty()) {
 				queue.addAll(owned);
@@ -110,18 +112,18 @@ public class player {
 	}
 
 	// not a good choice, need to be fixed.
-	// called by unit so that the unit knows to change the whether tiles have them.
-	public grid the_grid() {
+	// called by Unit so that the Unit knows to change the whether Tiles have them.
+	public Grid the_grid() {
 		return g;
 	}
 
 	// TO DO
-	public void destroy_unit(unit u) {
-		if (u instanceof settler) {
+	public void destroy_Unit(Unit u) {
+		if (u instanceof Settler) {
 			settlers.remove(u);
-		} else if (u instanceof worker) {
+		} else if (u instanceof Worker) {
 			workers.remove(u);
-		} else if (u instanceof troop) {
+		} else if (u instanceof Troop) {
 			troops.remove(u);
 		} else {
 
@@ -130,23 +132,39 @@ public class player {
 	}
 
 	// called by UI
-	public void build_unit(unit.TYPE type) {
+	public void build_unit(Unit.TYPE type) {
 		switch (type) {
 		case SETTLER:
-			settler person_s = new settler(home_x, home_y, this);
+			Settler person_s = new Settler(home_x, home_y, this);
 			settlers.add(person_s);
 			g.piece(home_x, home_y).add_unit(person_s);
 			break;
 		case WORKER:
-			worker person_w = new worker(home_x, home_y, this);
+			Worker person_w = new Worker(home_x, home_y, this);
 			workers.add(person_w);
 			g.piece(home_x, home_y).add_unit(person_w);
 			break;
 		case TROOP:
-			troop person_t = new troop(home_x, home_y, this);
+			Troop person_t = new Troop(home_x, home_y, this);
 			troops.add(person_t);
 			g.piece(home_x, home_y).add_unit(person_t);
 			break;
+		}
+	}
+
+	public void move(Tile t) {
+		
+	}
+	
+	public void move_units() {
+		for (Settler s : settlers) {
+			s.move();
+		}
+		for (Worker w : workers) {
+			w.move();
+		}
+		for (Troop t : troops) {
+			t.move();
 		}
 	}
 

@@ -1,9 +1,14 @@
 package castle_model;
 
-public class settler extends unit{
+public class Settler extends Unit{
 
-	settler(int x, int y, player p) {
+	Settler(int x, int y, Player p) {
 		super(x, y, p);
+	}
+
+	public void destroy() {
+		// TODO Auto-generated method stub
+		
 	}
 	
 }

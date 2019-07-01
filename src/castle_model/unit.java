@@ -1,6 +1,8 @@
 package castle_model;
 
-abstract public class unit {
+import java.util.ArrayList;
+
+abstract public class Unit {
 	public enum Command {
 		MOVE, STAY
 	}
@@ -9,43 +11,34 @@ abstract public class unit {
 	}
 
 	private int location_x, location_y;
-	private player owner;
-	private Command command = Command.STAY;
 	private int target_x, target_y;
-
-	unit(int x, int y, player P) {
+	private Player owner;
+	private Command command = Command.STAY;
+	ArrayList<Tile> path;
+	
+	Unit(int x, int y, Player P) {
 		location_x = x;
 		location_y = y;
 		owner = P;
 	}
 
-	// called by player
-	public void order_move(tile t) {
+	// called by Player
+	public void order_move(ArrayList<Tile> tiles) {
 		command = Command.MOVE;
-		target_x = t.get_x();
-		target_y = t.get_y();
+		path = tiles;
 	}
 
-	// called by player
-	public void order_move(int x, int y) {
-		command = Command.MOVE;
-		target_x = x;
-		target_y = y;
-	}
-
-	// called by player
+	// called by Player
 	public void order_stay() {
 		command = Command.STAY;
 		target_x = location_x;
 		target_y = location_y;
+		path.clear();
 	}
 
-	//need to fix this
-	// maybe called by grid, but definitely not the player
-	// maybe this should be override by child classes since unit actions are
-	// different according to types.
-	// called by the grid to actually move the unit.
-	public void move(int x, int y) {
+	// need to fix this
+	// for decimal locations
+	public void move() {
 		if (command == Command.MOVE) {
 			int old_x = location_x;
 			int old_y = location_y;
@@ -76,7 +69,23 @@ abstract public class unit {
 		return location_y;
 	}
 	
-	public player owner() {
+	public double print_location_x () {
+		return 1;
+	}
+	
+	public double print_location_y () {
+		return 0;
+	}
+	public Player owner() {
 		return owner;
+	}
+	
+	public Command status() {
+		return command;
+	}
+	
+	public void destroy() {
+		// TODO Auto-generated method stub
+		
 	}
 }
