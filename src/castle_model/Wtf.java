@@ -2,44 +2,42 @@ package castle_model;
 
 public class Wtf {
 	public static void main(String[] args) {
+		// tested moving worker unit
+		// tested worker production
+		// tested moving troop unit
+		// tested fighting between troop unit
+		// tested moving settler unit
+		// tested settler unit expand territory
+		// tested interaction between worker unit and troop unit. need test again
+		// tested interaction between settler unit and troop unit . need test again
+
 		Grid g = new Grid();
-		Player one = new Player(g, 0, 0);
-		Player two = new Player(g, 6, 6);
-
-		System.out.println("world players are         " + g.players + '\n');
-
-		System.out.println("Player one owns           " + one.owned);
-		System.out.println("Player one is adjacent to " + one.adjacent);
-		System.out.println("Player one can see        " + one.visible);
-
-		System.out.println("player one has workers:" + one.workers);
-		System.out.println("whats on " + g.piece(0));
+		Player one = new Player(g, 0, 0, "one");
+		Player two = new Player(g, 0, 2, "two");
+		System.out.println("turn 0 start");
 		one.build_unit(Unit.TYPE.WORKER);
-
-		System.out.println("player one has workers:" + one.workers);
-		System.out.println("whats on " + g.piece(0));
 		one.build_unit(Unit.TYPE.WORKER);
-		System.out.println("player one has workers:" + one.workers);
-		System.out.println("whats on " + g.piece(0));
-
 		one.build_unit(Unit.TYPE.SETTLER);
-		one.build_unit(Unit.TYPE.TROOP);
-		System.out.println("whats on " + g.piece(0));
-
-		for (int i = 0; i < 91; ++i) {
-			System.out.println(g.printX(i) + " " + g.printY(i));
-		}
-
-		System.out.println(one.workers.get(0).command);
-		System.out.println(one.workers.get(0).print_location_x() + " " + one.workers.get(0).print_location_y());
-		one.workers.get(0).order_move(g.piece(1, 1));
-		System.out.println(one.workers.get(0).command);
-		System.out.println(one.workers.get(0).print_location_x() + " " + one.workers.get(0).print_location_y());
-
-		for (int i = 0; i < 5; ++i) {
+		two.build_unit(Unit.TYPE.TROOP);
+		one.settlers.get(0).order_move(g.piece(0, 1));
+		one.workers.get(0).order_move(g.piece(0, 1));
+		g.resolve_all();
+		one.print_resources();
+		two.print_resources();
+		System.out.println("turn 1 start");
+		two.troops.get(0).order_move(g.piece(0, 1));
+		for (int i = 0; i < 10; ++i) {
+			System.out.println();
+			System.out.println();
 			g.resolve_all();
-			System.out.println(one.workers.get(0).command);
-			System.out.println(one.workers.get(0).print_location_x() + " " + one.workers.get(0).print_location_y());
+			System.out.println("turn " + (i + 2) + " start");
+			System.out.println();
+			one.print_resources();
+			two.print_resources();
+			one.expand_territory(g.piece(0, 1));
+			two.expand_territory(g.piece(0, 1));
+			System.out.println();
+			System.out.println();
 		}
 	}
 }

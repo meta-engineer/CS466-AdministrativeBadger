@@ -3,7 +3,7 @@ package castle_model;
 import java.util.ArrayList;
 import java.util.List;
 
-abstract public class Unit {
+public class Unit {
 	public enum Command {
 		MOVE, STAY
 	}
@@ -14,10 +14,9 @@ abstract public class Unit {
 
 	public static final int TURNS_TO_MOVE_UNIT = 3;
 
-	private int location_x, location_y;
-	private int target_x, target_y;
-	private Player owner;
-	private int moving_turns = 0;
+	protected int location_x, location_y;
+
+	protected Player owner;
 	Command command = Command.STAY;
 	List<Tile> path;
 	int remained_moving_turns = TURNS_TO_MOVE_UNIT;
@@ -39,15 +38,12 @@ abstract public class Unit {
 	// need to be adjacent tiles
 	public void order_move(Tile tile) {
 		command = Command.MOVE;
-		path.clear();
 		path.add(tile);
 	}
 
 	// called by Player
 	public void order_stay() {
 		command = Command.STAY;
-		target_x = location_x;
-		target_y = location_y;
 		path.clear();
 	}
 
@@ -58,13 +54,12 @@ abstract public class Unit {
 			--remained_moving_turns;
 			if (remained_moving_turns == 0) {
 				remained_moving_turns = TURNS_TO_MOVE_UNIT;
+				owner.the_grid().piece(location_x, location_y).remove_unit(this);
 				location_x = path.get(0).get_x();
 				location_y = path.get(0).get_y();
-				path.remove(0).remove_unit(this);
+				path.remove(0).add_unit(this);
 				if (path.isEmpty()) {
 					command = Command.STAY;
-				} else {
-					path.get(0).add_unit(this);
 				}
 			}
 		}
@@ -104,12 +99,23 @@ abstract public class Unit {
 		}
 	}
 
-	public Player owner() {
+	public Player get_owner() {
 		return owner;
+	}
+
+	public void set_owner(Player p) {
+		this.get_owner().destroy_Unit(this);
+		p.add_Unit(this);
+		owner = p;
+		order_stay();
 	}
 
 	public Command status() {
 		return command;
+	}
+
+	public String toString() {
+		return location_x + " " + location_y + " " + command;
 	}
 
 	public void destroy() {

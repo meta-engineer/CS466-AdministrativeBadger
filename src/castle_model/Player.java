@@ -7,8 +7,10 @@ import java.util.PriorityQueue;
 import java.util.Set;
 
 public class Player {
+	private String name = "";
 	private int home_x, home_y;
 	private Grid g;
+	private double resources[] = new double[2];
 	private double priority[] = new double[Grid.SIZE];
 
 	// for debugging purpose, the following 6 arrays are set to public, please
@@ -82,11 +84,30 @@ public class Player {
 	}
 
 	// checked
-	public Player(Grid G, int x, int y) {
+
+	public void expand_territory(Tile t) {
+		if (t.owner == this) {
+			System.out.println(this + ", you have already owned this tile.");
+			return;
+		}
+
+		if (t.tempted_owner == this) {
+			add_territory(t.get_x(), t.get_y());
+			destroy_Unit(settlers.get(0));
+			t.tempted_owner = null;
+			System.out.println(this + ", You just concured the tile " + t.get_x() + " " + t.get_y() + " ");
+		} else {
+			System.out.println(this
+					+ ", Please first put at least a settler on this tile for several turns, then you can concur this tile.");
+		}
+	}
+
+	public Player(Grid G, int x, int y, String s) {
 		g = G;
 		home_x = x;
 		home_y = y;
 		add_territory(x, y);
+		name = s;
 		g.add_player(this);
 	}
 
@@ -117,7 +138,6 @@ public class Player {
 		return g;
 	}
 
-	// TO DO
 	public void destroy_Unit(Unit u) {
 		if (u instanceof Settler) {
 			settlers.remove(u);
@@ -126,9 +146,22 @@ public class Player {
 		} else if (u instanceof Troop) {
 			troops.remove(u);
 		} else {
-
+			System.out.println("destroy failed");
 		}
 		g.piece(u.get_location_x(), u.get_location_y()).remove_unit(u);
+	}
+
+	public void add_Unit(Unit u) {
+		if (u instanceof Settler) {
+			settlers.add((Settler) u);
+		} else if (u instanceof Worker) {
+			workers.add((Worker) u);
+		} else if (u instanceof Troop) {
+			troops.add((Troop) u);
+		} else {
+			System.out.println("adding unit failed");
+		}
+		g.piece(u.get_location_x(), u.get_location_y()).add_unit(u);
 	}
 
 	// called by UI
@@ -152,10 +185,6 @@ public class Player {
 		}
 	}
 
-	public void move(Tile t) {
-
-	}
-
 	public void move_units() {
 		for (Settler s : settlers) {
 			s.move();
@@ -168,4 +197,22 @@ public class Player {
 		}
 	}
 
+	public void add_resources(double[] effi) {
+		for (int i = 0; i < Grid.RESOURCES_TYPES; ++i) {
+			resources[i] += effi[i];
+		}
+	}
+
+	public void print_resources() {
+		System.out.println(this + " has territories:  " + owned);
+		System.out.println(this + " has resources: " + resources[0] + " " + resources[1]);
+		System.out.println(this + " has settlers: " + settlers);
+		System.out.println(this + " has workers: " + workers);
+		System.out.println(this + " has troops:  " + troops);
+	}
+
+	public String toString() {
+		return name;
+
+	}
 }
