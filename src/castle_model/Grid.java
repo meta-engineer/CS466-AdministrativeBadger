@@ -4,12 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Grid {
-	List<Player> players;
+	static ArrayList<Player> players = new ArrayList<Player>();
 
 	public enum RESOURCES {
 		GRAIN, WOOD
 	}
 
+	public static final int RESOURCES_TYPES = RESOURCES.values().length;
 	public static final int SIDE_LENGTH = 6;
 	public static final int SIZE = SIDE_LENGTH * (SIDE_LENGTH - 1) * 3 + 1;
 	Tile tiles[];
@@ -19,7 +20,7 @@ public class Grid {
 		int count = 0;
 		for (int x = 0; x < 2 * SIDE_LENGTH - 1; ++x) {
 			for (int y = 0; y < x + SIDE_LENGTH && y < 3 * SIDE_LENGTH - x - 2; ++y) {
-				tiles[count] = new Tile(x, y, 0.5, this);
+				tiles[count] = new Tile(x, y, 1, this);
 				++count;
 			}
 		}

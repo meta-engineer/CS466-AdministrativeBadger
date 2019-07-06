@@ -6,4 +6,8 @@ public class Troop extends Unit{
 		super(x, y, p);
 	}
 	
+	@Override
+	public String toString() {
+		return "Troop "+ super.toString();
+	}
 }
