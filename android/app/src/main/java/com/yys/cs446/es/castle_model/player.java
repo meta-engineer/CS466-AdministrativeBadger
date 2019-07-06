@@ -6,10 +6,13 @@ import java.util.LinkedHashSet;
 import java.util.PriorityQueue;
 import java.util.Set;
 
+import com.yys.cs446.es.castle_model.tile.RESOURCES;
+
 public class player {
 	private int home_x, home_y;
 	private grid g;
-	private double priority[] = new double[grid.SIZE];
+	//SIDE LENGTH is protected can this be restructured?
+	//private double priority[][] = new double[grid.SIDE_LENGTH][grid.SIDE_LENGTH];
 
 	// for debugging purpose, the following 6 arrays are set to public, please
 	// change them to private after debugging.
@@ -20,6 +23,33 @@ public class player {
 	public ArrayList<worker> workers = new ArrayList<worker>();
 	public ArrayList<settler> settlers = new ArrayList<settler>();
 	public ArrayList<troop> troops = new ArrayList<troop>();
+
+
+	// constructor
+	public player(grid G, int x, int y) {
+		g = G;
+		home_x = x;
+		home_y = y;
+		add_territory(x, y);
+	}
+
+	// called from UI for tile overlay info
+	public boolean isTileVisible(int x, int y) {
+		for (tile t : visible) {
+			if (t.get_x() == x && t.get_y() == y) {
+				return true;
+			}
+		}
+		return false;
+	}
+	public boolean isTileOwned(int x, int y) {
+		for (tile t : owned) {
+			if (t.get_x() == x && t.get_y() == y) {
+				return true;
+			}
+		}
+		return false;
+	}
 
 	// called by grid
 	public void remove_territory(int x, int y) {
@@ -62,40 +92,31 @@ public class player {
 	//checked
 	public void add_territory(int x, int y) {
 		attach(owned, x, y);
-		attach(adjacent, x - 1, y - 1);
+		attach(adjacent, x - 1, y + 1);
 		attach(adjacent, x - 1, y);
 		attach(adjacent, x, y - 1);
 		attach(adjacent, x, y + 1);
 		attach(adjacent, x + 1, y);
-		attach(adjacent, x + 1, y + 1);
-		attach(visible, x - 2, y);
-		attach(visible, x - 2, y - 1);
-		attach(visible, x - 2, y - 2);
-		attach(visible, x - 1, y + 1);
-		attach(visible, x - 1, y - 2);
-		attach(visible, x, y - 2);
-		attach(visible, x, y + 2);
-		attach(visible, x + 1, y + 2);
-		attach(visible, x + 1, y - 1);
-		attach(visible, x + 2, y + 2);
-		attach(visible, x + 2, y + 1);
-		attach(visible, x + 2, y);
-		visible.removeAll(adjacent);
-		visible.removeAll(owned);
+		attach(adjacent, x + 1, y - 1);
+
+		// 2 tile radius
+		for (int i = -2; i <= 2; i++) {
+			for (int j = -2; j <= 2; j++) {
+				if (i+j >= -2 && i+j <= 2) {
+					attach(visible, x + i, y + j);
+				}
+			}
+		}
+		// visible is superset DO NOT remove adj/owned
+		//visible.removeAll(adjacent);
+		//visible.removeAll(owned);
+		// adjacent is not superset remove Owned
 		adjacent.removeAll(owned);
 		remove_duplicate();
 	}
 
-	//checked
-	public player(grid G, int x, int y) {
-		g = G;
-		home_x = x;
-		home_y = y;
-		add_territory(x, y);
-	}
-
-	// called by UI
-	public void collect(grid.RESOURCES type) {
+	// called by UI (through controller)
+	public void collect(RESOURCES type) {
 		Comparator<tile> comp = new tile_comparator(type);
 		PriorityQueue<tile> queue = new PriorityQueue<tile>(comp);
 		queue.addAll(owned);

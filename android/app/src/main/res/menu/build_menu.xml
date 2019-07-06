@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/build_1"
+        android:icon="@drawable/grass"
+        android:title="Build unit"/>
+    <item android:id="@+id/build_2"
+        android:icon="@drawable/city"
+        android:title="Build building" />
+</menu>

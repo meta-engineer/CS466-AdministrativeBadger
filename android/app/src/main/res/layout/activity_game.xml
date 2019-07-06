@@ -4,15 +4,64 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/colorBackdrop"
     tools:context=".GameActivity">
 
     <com.yys.cs446.es.views.tileView
         android:id="@+id/tileView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginEnd="0dp"
-        android:layout_marginRight="0dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        tools:layout_editor_absoluteY="0dp" />
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <ImageButton
+        android:id="@+id/imageButton"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/toolbarHeight"
+        android:layout_marginStart="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginBottom="8dp"
+        android:onClick="popupMenuGather"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/imageButton2"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <ImageButton
+        android:id="@+id/imageButton2"
+        android:onClick="popupMenuBuild"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/toolbarHeight"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintStart_toEndOf="@id/imageButton"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/imageButton3"/>
+
+    <ImageButton
+        android:id="@+id/imageButton3"
+        android:onClick="popupMenuExpand"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/toolbarHeight"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintStart_toEndOf="@id/imageButton2"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/imageButton4" />
+
+    <ImageButton
+        android:id="@+id/imageButton4"
+        android:onClick="popupMenuDefend"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/toolbarHeight"
+        android:layout_marginRight="8dp"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintStart_toEndOf="@id/imageButton3"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <ImageButton
+        android:id="@+id/imageButton5"
+        android:onClick="popupMenuOptions"
+        android:layout_width="@dimen/toolbarHeight"
+        android:layout_height="@dimen/toolbarHeight"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </android.support.constraint.ConstraintLayout>

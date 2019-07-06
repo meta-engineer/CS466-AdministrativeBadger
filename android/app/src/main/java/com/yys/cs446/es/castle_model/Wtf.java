@@ -1,6 +1,7 @@
 package com.yys.cs446.es.castle_model;
 
 public class Wtf {
+	/*
 	public static void main(String[] args) {
 		grid g = new grid();
 		player one = new player(g,0,0);
@@ -15,4 +16,5 @@ public class Wtf {
 		one.build_unit(unit.TYPE.WORKER);
 		one.collect(grid.RESOURCES.GRAIN);
 	}
+	*/
 }

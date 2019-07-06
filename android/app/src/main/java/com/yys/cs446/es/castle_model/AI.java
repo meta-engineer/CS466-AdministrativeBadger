@@ -1,6 +1,9 @@
 package castle_model;
 
-public class AI extends player{
+import com.yys.cs446.es.castle_model.grid;
+import com.yys.cs446.es.castle_model.player;
+
+public class AI extends player {
 	public AI(grid G, int x, int y) {
 		super(G, 0, 0);
 	}

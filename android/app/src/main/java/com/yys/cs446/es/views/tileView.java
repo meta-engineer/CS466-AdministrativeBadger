@@ -11,6 +11,7 @@ import android.graphics.RectF;
 import android.os.Build;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
@@ -18,6 +19,14 @@ import android.view.ViewTreeObserver;
 import com.yys.cs446.es.R;
 import com.yys.cs446.es.castle_model.grid;
 import com.yys.cs446.es.castle_model.player;
+import com.yys.cs446.es.castle_model.tile;
+import com.yys.cs446.es.castle_model.tile.RESOURCES;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 
 public class tileView extends View {
@@ -31,18 +40,18 @@ public class tileView extends View {
     private float originY = 0;
     private float lastOffsetX;
     private float lastOffsetY;
+    private float lastPinchDistance;
+    private float zoomFactor = (float)4.5;
+    
+    // maybe view only needs to know about myGrid.getgrid()
+    // if object is copied it will need strict updates (but avoids race conditions?)
     private grid myGrid = null;
 
     private player myPlayer = null;
 
-    private Bitmap grassTileBitmap;
-    private Bitmap grainTileBitmap;
-    private Bitmap woodsTileBitmap;
-    private Bitmap waterTileBitmap;
-    private Bitmap townTileBitmap;
-    private Bitmap playerOwnedTileBitmap;
-    private Bitmap playerSelectTileBitmap;
-    private Bitmap fogTileBitmap;
+    // bitmap dictionaries for tiles
+    private HashMap<String, Bitmap> originalBitmaps;
+    private HashMap<String, Bitmap> scaledBitmaps;
 
     private Bitmap worker1Bitmap;
     private Bitmap worker2Bitmap;
@@ -80,14 +89,19 @@ public class tileView extends View {
         xPaintSquare.setColor(Color.BLACK);
         xPaintSquare.setTextSize(60);
 
-        grassTileBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.grass);
-        grainTileBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.grain);
-        woodsTileBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.woods_light);
-        waterTileBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.water);
-        townTileBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.town);
-        playerOwnedTileBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.tile_owned);
-        playerSelectTileBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.tile_selected);
-        fogTileBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.fog);
+        //load original Tile Bitmaps
+        originalBitmaps = new HashMap<String, Bitmap>();
+        originalBitmaps.put("grassTile", BitmapFactory.decodeResource(getResources(), R.drawable.grass));
+        originalBitmaps.put("grainTile", BitmapFactory.decodeResource(getResources(), R.drawable.grain));
+        originalBitmaps.put("woodsLightTile", BitmapFactory.decodeResource(getResources(), R.drawable.woods_light));
+        originalBitmaps.put("waterTile", BitmapFactory.decodeResource(getResources(), R.drawable.water));
+        originalBitmaps.put("townTile", BitmapFactory.decodeResource(getResources(), R.drawable.town));
+        originalBitmaps.put("ownedTile", BitmapFactory.decodeResource(getResources(), R.drawable.tile_owned));
+        originalBitmaps.put("selectedTile", BitmapFactory.decodeResource(getResources(), R.drawable.tile_selected));
+        originalBitmaps.put("fogTile", BitmapFactory.decodeResource(getResources(), R.drawable.fog));
+        originalBitmaps.put("mountainTile", BitmapFactory.decodeResource(getResources(), R.drawable.mountain));
+
+        scaledBitmaps = new HashMap<String, Bitmap>(originalBitmaps);
 
         worker1Bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.worker1);
         worker2Bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.worker2);
@@ -102,24 +116,8 @@ public class tileView extends View {
                 else
                     getViewTreeObserver().removeGlobalOnLayoutListener(this);
 
-                int sizefactor = 4;
-
-                grassTileBitmap = getResizedBitmap(grassTileBitmap, getWidth() / sizefactor, (int)((float)(getWidth()  / sizefactor) * 1.5));
-                grainTileBitmap = getResizedBitmap(grainTileBitmap, getWidth() / sizefactor, (int)((float)(getWidth()  / sizefactor) * 1.5));
-                woodsTileBitmap = getResizedBitmap(woodsTileBitmap, getWidth() / sizefactor, (int)((float)(getWidth()  / sizefactor) * 1.5));
-                waterTileBitmap = getResizedBitmap(waterTileBitmap, getWidth() / sizefactor, (int)((float)(getWidth()  / sizefactor) * 1.5));
-                townTileBitmap = getResizedBitmap(townTileBitmap, getWidth() / sizefactor, (int)((float)(getWidth()  / sizefactor) * 1.5));
-                playerOwnedTileBitmap = getResizedBitmap(playerOwnedTileBitmap, getWidth() / sizefactor, (int)((float)(getWidth()  / sizefactor) * 1.5));
-                playerSelectTileBitmap = getResizedBitmap(playerSelectTileBitmap, getWidth() / sizefactor, (int)((float)(getWidth()  / sizefactor) * 1.5));
-                fogTileBitmap = getResizedBitmap(fogTileBitmap, getWidth() / sizefactor, (int)((float)(getWidth()  / sizefactor) * 1.5));
-
-                tileWidth = grassTileBitmap.getWidth();
-                tileHeight = grassTileBitmap.getHeight();
-
-
-                worker1Bitmap = getResizedBitmap(worker1Bitmap, (int)tileWidth / 2, (int)tileHeight / 3);
-                worker2Bitmap = getResizedBitmap(worker2Bitmap, (int)tileWidth / 2, (int)tileHeight / 3);
-            }
+                    updateBitmapScale();
+             }
         });
 
     }
@@ -135,6 +133,27 @@ public class tileView extends View {
 
         // TODO: must return tuple(?) with x and y ??
         return 0;
+    }
+
+    // uses private zoomfactor and rescales bitmaps
+    // must rescale ORIGINAL bitmaps to avoid accumulating compression
+    private void updateBitmapScale() {
+        Iterator it = originalBitmaps.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            // use pair.getKey(), pair.getValue()
+            scaledBitmaps.put(pair.getKey().toString(), getResizedBitmap(originalBitmaps.get(pair.getKey()), (int)(getWidth() / zoomFactor), (int)((getWidth()  / zoomFactor) * 1.5)));
+            it.remove();
+        }
+
+
+        // build unit dimensions off adjusted tile dimensions
+        tileWidth = scaledBitmaps.get("grassTile").getWidth();
+        tileHeight = scaledBitmaps.get("grassTile").getHeight();
+
+        worker1Bitmap = getResizedBitmap(worker1Bitmap, (int)tileWidth / 2, (int)tileHeight / 3);
+        worker2Bitmap = getResizedBitmap(worker2Bitmap, (int)tileWidth / 2, (int)tileHeight / 3);
+
     }
 
     public void setCamera(int xIndex, int yIndex) {
@@ -155,56 +174,73 @@ public class tileView extends View {
 
         //canvas.drawRect(xRectSquare, xPaintSquare);
 
+        // catches baf/ uninitialized states
         if (myGrid == null) {
-
-            canvas.drawBitmap(grassTileBitmap, 0, 0, null);
+            //canvas.drawBitmap(originalBitmaps.get("townTile"), 0, 0, null);
             return;
         }
+        
+        tile[][] gridArray = myGrid.getGrid();
 
-        /*
-        base_tile[][] gridArray = myGrid.getGrid();
-
+        // draw land tiles themselves
         for (int i = 0; i < gridArray.length; i++) {
             for (int j = 0; j < gridArray[i].length; j++) {
                 //Log.d("SIZE DEBUG***:", "width: " + grassTileBitmap.getWidth());
                 //Log.d("SIZE DEBUG***:", "height: " + grassTileBitmap.getHeight());
 
 
-                int x = (int) (j * tileWidth * 0.7143) - Math.round(originX) ;
-                int y = (int) (j * tileHeight * 0.2976 + i * tileHeight * 0.5813) - Math.round(originY);
+                int x = (int) (j * tileWidth * 0.74) - Math.round(originX) ;
+                int y = (int) (j * tileHeight * 0.29 + i * tileHeight * 0.577) - Math.round(originY);
 
-                if (myPlayer.isTileVisible(i, j) == false) {
-                    canvas.drawBitmap(fogTileBitmap, x, y, null);
+                // out of "draw distance"
+                if (x < -tileWidth || y < -tileHeight || x > getWidth() || y > getHeight()) {
                     continue;
                 }
 
-                if (gridArray[i][j].getType() == grid.RESOURCES.NONE) {
-                    canvas.drawBitmap(grassTileBitmap, x, y, null);
-                } else if (gridArray[i][j].getType() == grid.RESOURCES.GRAIN) {
-                    canvas.drawBitmap(grainTileBitmap, x, y, null);
-                } else if (gridArray[i][j].getType() == grid.RESOURCES.WOOD) {
-                    canvas.drawBitmap(woodsTileBitmap, x, y, null);
-                } else if (gridArray[i][j].getType() == grid.RESOURCES.WATER) {
-                    canvas.drawBitmap(waterTileBitmap, x, y, null);
-                } else if (gridArray[i][j].getType() == grid.RESOURCES.TOWN) {
-                    canvas.drawBitmap(townTileBitmap, x, y, null);
+                if (gridArray[i][j].getType() == RESOURCES.NONE) {
+                    // let space be "empty"
+                    continue;
+                }
+
+                if (myPlayer.isTileVisible(i, j) == false) {
+                    //** no fog of war for debugging
+                    //canvas.drawBitmap(scaledBitmaps.get("fogTile"), x, y, null);
+                    //continue;
+                }
+
+                if (gridArray[i][j].getType() == RESOURCES.GRASS) {
+                    canvas.drawBitmap(scaledBitmaps.get("grassTile"), x, y, null);
+                } else if (gridArray[i][j].getType() == RESOURCES.GRAIN) {
+                    canvas.drawBitmap(scaledBitmaps.get("grainTile"), x, y, null);
+                } else if (gridArray[i][j].getType() == RESOURCES.WOOD) {
+                    canvas.drawBitmap(scaledBitmaps.get("woodsLightTile"), x, y, null);
+                } else if (gridArray[i][j].getType() == RESOURCES.WATER) {
+                    canvas.drawBitmap(scaledBitmaps.get("waterTile"), x, y, null);
+                } else if (gridArray[i][j].getType() == RESOURCES.TOWN) {
+                    canvas.drawBitmap(scaledBitmaps.get("townTile"), x, y, null);
+                } else if (gridArray[i][j].getType() == RESOURCES.MOUNTAIN) {
+                    canvas.drawBitmap(scaledBitmaps.get("mountainTile"), x, y, null);
+                }
+
+                // draw player ile overlay info
+                // may need testing for Zbuffer (draw order)
+                // but should be good as long ad elements stay in the 2:3 width:length ratio
+                if (myPlayer.isTileOwned(i,j)) {
+                    canvas.drawBitmap(scaledBitmaps.get("ownedTile"), x, y, null);
                 }
             }
         }
 
-        for (base_tile t : myPlayer.getOwnedTiles()) {
-            int x = (int) (t.get_y() * tileWidth * 0.7143) - Math.round(originX);
-            int y = (int) (t.get_y() * tileHeight * 0.2976 + t.get_x() * tileHeight * 0.5813) - Math.round(originY);
-            canvas.drawBitmap(playerOwnedTileBitmap, x, y, null);
-        }
+        // draw player overlay information
+        // **This is not UI which is outside of tileView
+        /*
         {
             int x = (int) (myPlayer.getSelectY() * tileWidth * 0.7143) - Math.round(originX);
             int y = (int) (myPlayer.getSelectY() * tileHeight * 0.2976 + myPlayer.getSelectX() * tileHeight * 0.5813) - Math.round(originY);
-            canvas.drawBitmap(playerSelectTileBitmap, x, y, null);
+            canvas.drawBitmap(scaledBitmaps.get("selectedTile"), x, y, null);
         }
         */
-
-        canvas.drawText("Grain: " + Integer.toString((int)myPlayer.getOwnedResources()[1]) + " Wood: " + Integer.toString((int)myPlayer.getOwnedResources()[2]), 100, 100, xPaintSquare);
+        canvas.drawText("Grain: " + Integer.toString(5) + " Wood: " + Integer.toString(6), 100, 100, xPaintSquare);
     }
 
     @Override
@@ -213,18 +249,42 @@ public class tileView extends View {
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN: {
+                // set init value for scrolling
                 lastOffsetX = event.getX();
                 lastOffsetY = event.getY();
+
+                // set init value for pinching
+                if (event.getPointerCount() == 2){
+                    float xDist = event.getX(0) - event.getX(1);
+                    float yDist = event.getY(0) - event.getY(1);
+                    double squareDist = Math.pow(xDist, 2) + Math.pow(yDist, 2);
+                    lastPinchDistance = (float)Math.sqrt(squareDist);
+                }
 
                 if (toggleSelect) {
                     toggleSelect = !toggleSelect;
                     int selectY = (int) Math.round((event.getX() - (tileWidth/2) + originX) / 0.7143 / tileWidth);
                     int selectX = (int) Math.round( ((event.getY() - (tileHeight/2) + originY) -  (selectY * tileHeight * 0.2976)) / tileHeight / 0.5813);
-                    myPlayer.selectTile(selectX, selectY);
+                    //myPlayer.selectTile(selectX, selectY);
                 }
                 return true;
             }
             case MotionEvent.ACTION_MOVE: {
+
+                if (event.getPointerCount() == 2) {
+                    float xDist = event.getX(0) - event.getX(1);
+                    float yDist = event.getY(0) - event.getY(1);
+                    double squareDist = Math.pow(xDist, 2) + Math.pow(yDist, 2);
+                    float trueDist = (float)Math.sqrt(squareDist);
+                    // Adjust zoomfactor and origin relatively based on trueDist
+                    //zoomFactor += (trueDist - lastPinchDistance) / 1000;
+                    //originX +=
+                    //originY +=
+                    lastPinchDistance = trueDist;
+                    //updateBitmapScale();
+                    // dont do other touch events
+                    return true;
+                }
                 float x = event.getX();
                 float y = event.getY();
 

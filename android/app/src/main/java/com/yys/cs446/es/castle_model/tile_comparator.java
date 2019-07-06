@@ -1,11 +1,12 @@
 package com.yys.cs446.es.castle_model;
 
 import java.util.Comparator;
+import com.yys.cs446.es.castle_model.tile.RESOURCES;
 
 public class tile_comparator implements Comparator<tile> {
-	private grid.RESOURCES r = grid.RESOURCES.GRAIN;
+	private RESOURCES r = RESOURCES.GRAIN;
 
-	public tile_comparator(grid.RESOURCES res) {
+	public tile_comparator(RESOURCES res) {
 		r = res;
 	}
 

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/gather_1"
+        android:icon="@drawable/grass"
+        android:title="Gather wood"/>
+    <item android:id="@+id/gather_2"
+        android:icon="@drawable/city"
+        android:title="Gather grain" />
+</menu>

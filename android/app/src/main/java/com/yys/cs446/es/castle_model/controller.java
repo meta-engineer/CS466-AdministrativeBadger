@@ -15,8 +15,8 @@ public class controller {
         view = v;
         g = new grid();
 
-        int spawnX = 7;
-        int spawnY = 7;
+        int spawnX = 5;
+        int spawnY = 5;
         playerOne = new player(g, spawnX, spawnY);
 
         // init states
