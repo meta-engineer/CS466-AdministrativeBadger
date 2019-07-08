@@ -1,82 +1,107 @@
 package com.yys.cs446.es.castle_model;
 
-abstract public class unit {
+import android.widget.PopupMenu;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class unit {
 	public enum Command {
-		MOVE, STAY
+		MOVE, STAY, WORK, COMBAT
 	}
 	public enum TYPE {
-		SETTLER, WORKER, TROOP
+		NONE, SETTLER, WORKER, TROOP
 	}
 
-	private int location_x, location_y;
-	private player owner;
-	private Command command = Command.STAY;
-	private int target_x, target_y;
+	protected double location_x, location_y;
+	protected player owner;
+	protected Command command;
+	// hit points
+	protected float HP;
+	protected float totalHP;
+	// attack points
+	protected float AP;
 
-	unit(int x, int y, player P) {
+	// each move unit moves towards next in path by their movespeed
+	ArrayList<tile> path;
+	// each gametick units can move 0.2 of an index * tile.movespeedFactor
+	public static final double movespeed = 0.1;
+
+	unit(double x, double y, player P) {
 		location_x = x;
 		location_y = y;
 		owner = P;
-	}
-
-	// called by player
-	public void order_move(tile t) {
-		command = Command.MOVE;
-		target_x = t.get_x();
-		target_y = t.get_y();
-	}
-
-	// called by player
-	public void order_move(int x, int y) {
-		command = Command.MOVE;
-		target_x = x;
-		target_y = y;
-	}
-
-	// called by player
-	public void order_stay() {
 		command = Command.STAY;
-		target_x = location_x;
-		target_y = location_y;
+
+		//init empty path
+		path = new ArrayList<tile>();
 	}
 
-	//need to fix this
-	// maybe called by grid, but definitely not the player
-	// maybe this should be override by child classes since unit actions are
-	// different according to types.
-	// called by the grid to actually move the unit.
-	public void move(int x, int y) {
-		if (command == Command.MOVE) {
-			int old_x = location_x;
-			int old_y = location_y;
-			if (target_x > location_x) {
-				++location_x;
-			} else if (target_x < location_x) {
-				--location_x;
-			}
-			if (target_y > location_y) {
-				++location_y;
-			} else if (target_y < location_y) {
-				--location_y;
-			}
-			//need to fix this
-			owner.the_grid().piece(old_x,old_y).remove_unit(this);
-			owner.the_grid().piece(location_x,location_y).add_unit(this);
-			if ((target_x == location_x) && (target_y == location_y)) {
-				command = Command.STAY;
-			}
+	// progress self (finite state machine)
+	// OVERRIDED implementation for each subclass
+	public void act() {
+		// anything to do for all units in general?
+	}
+
+	// called by player
+	public void order_move(ArrayList<tile> p) {
+		// check if path is valid (adjacent?, starts from current location?)
+		command = Command.MOVE;
+		path = p;
+	}
+
+	public void attack(unit u) {
+		float enemyAttack = u.getAP();
+		// if attack would kill unit check for capturing
+		if (AP >= u.getHP() && !(u instanceof troop)) {
+			u.set_owner(owner);
+		} else {
+			u.takeDamage(AP);
+			takeDamage(enemyAttack);
 		}
 	}
 
-	public int get_location_x () {
+	public float getTotalHP() {
+		return totalHP;
+	}
+
+	public float getHP() {
+		return HP;
+	}
+
+	public void takeDamage(float dmg) {
+		HP -= dmg;
+		if (HP <= 0) owner.destroy_Unit(this);
+	}
+
+	public float getAP() {
+		return AP;
+	}
+
+	public void order_stay() {
+		command = Command.STAY;
+	}
+
+	public double get_location_x () {
 		return location_x;
 	}
 	
-	public int get_location_y () {
+	public double get_location_y () {
 		return location_y;
 	}
-	
-	public player owner() {
+
+	public player get_owner() {
 		return owner;
+	}
+
+	public void set_owner(player p) {
+		this.get_owner().destroy_Unit(this);
+		p.add_Unit(this);
+		owner = p;
+		order_stay();
+	}
+
+	public Command status() {
+		return command;
 	}
 }

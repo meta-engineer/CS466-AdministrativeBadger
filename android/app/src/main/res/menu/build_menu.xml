@@ -2,8 +2,14 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@+id/build_1"
         android:icon="@drawable/grass"
-        android:title="Build unit"/>
+        android:title="Produce worker"/>
     <item android:id="@+id/build_2"
+        android:icon="@drawable/grass"
+        android:title="Produce troop"/>
+    <item android:id="@+id/build_3"
+        android:icon="@drawable/grass"
+        android:title="Produce settler"/>
+    <item android:id="@+id/build_4"
         android:icon="@drawable/city"
-        android:title="Build building" />
+        android:title="Improve Tile" />
 </menu>
