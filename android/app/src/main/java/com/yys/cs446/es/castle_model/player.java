@@ -23,7 +23,7 @@ public class player {
 
 	// should be a collection of "home" tiles for each settlement?
 	private int home_x, home_y;
-	private float totalHP;
+	private float HPMax;
 	private float HP;
 	private grid g;
 	//SIDE LENGTH is protected can this be restructured?
@@ -47,8 +47,8 @@ public class player {
 	private ArrayList<tile> defendedTiles;
 
 	private unit.TYPE producingUnitType;
-	private int unitProgress;
-	private final int unitProgressMax = 100;
+	private float unitProgress;
+	private final float unitProgressMax = 100;
 
 	// constructor
 	public player(grid G, int x, int y) {
@@ -59,7 +59,7 @@ public class player {
 		    // could not add player to grid (controller will have to catch)
             throw new IllegalArgumentException("Could not add player to grid here");
         }
-        totalHP = 1000;
+        HPMax = 1000;
 		HP = 100;
         owned = new ArrayList<tile>();
         adjacent = new ArrayList<tile>();
@@ -92,6 +92,7 @@ public class player {
 
 	// called every game tick to let units act (as finite state machines)
 	public void act() {
+		//cascade to units
 	    for (unit q : myUnits) {
 	        q.act();
         }
@@ -103,24 +104,24 @@ public class player {
 			if (producingUnitType == unit.TYPE.WORKER) {
 				if (resourceInventory.get(RESOURCES.FOOD) > 0) {
 					// reduce food by 1 and increase progress (20 food to produce)
-					resourceInventory.put(RESOURCES.FOOD, resourceInventory.get(RESOURCES.FOOD) - 1);
-					unitProgress += 5;
+					resourceInventory.put(RESOURCES.FOOD, resourceInventory.get(RESOURCES.FOOD) - 0.2);
+					unitProgress += 1;
 				}
 			} else if (producingUnitType == unit.TYPE.TROOP) {
 				if (resourceInventory.get(RESOURCES.FOOD) > 0 && resourceInventory.get(RESOURCES.STONE) > 0) {
 					// reduce food by 1 and increase progress (20 food to produce, 20 stone)
-					resourceInventory.put(RESOURCES.FOOD, resourceInventory.get(RESOURCES.FOOD) - 1);
-					resourceInventory.put(RESOURCES.STONE, resourceInventory.get(RESOURCES.STONE) - 1);
-					unitProgress += 5;
+					resourceInventory.put(RESOURCES.FOOD, resourceInventory.get(RESOURCES.FOOD) - 0.2);
+					resourceInventory.put(RESOURCES.STONE, resourceInventory.get(RESOURCES.STONE) - 0.2);
+					unitProgress += 1;
 				} else {
 					// if not enough resources: send notification message?
 				}
 			} else if (producingUnitType == unit.TYPE.SETTLER) {
 				if (resourceInventory.get(RESOURCES.FOOD) > 0 && resourceInventory.get(RESOURCES.LUMBER) > 0) {
 					// reduce food by 1 and increase progress (20 food to produce, 20 stone)
-					resourceInventory.put(RESOURCES.FOOD, resourceInventory.get(RESOURCES.FOOD) - 1);
-					resourceInventory.put(RESOURCES.LUMBER, resourceInventory.get(RESOURCES.LUMBER) - 1);
-					unitProgress += 5;
+					resourceInventory.put(RESOURCES.FOOD, resourceInventory.get(RESOURCES.FOOD) - 0.2);
+					resourceInventory.put(RESOURCES.LUMBER, resourceInventory.get(RESOURCES.LUMBER) - 0.2);
+					unitProgress += 1;
 				}
 			}
 
@@ -179,9 +180,10 @@ public class player {
     // implemented in player because context specific (avoiding enemies?)
     public ArrayList<tile> getPath(tile s, tile f) {
         ArrayList<tile> answer = new ArrayList<tile>();
-        // build list of tiles NOT INCLUDING START TILE, and YES INCLUDING FINISH TILE
+        // build list of tiles INCLUDING START TILE, and INCLUDING FINISH TILE
         int iX = s.get_x();
         int iY = s.get_y();
+		answer.add(g.piece(iX, iY));
         // keep adding closer tiles until we get there
         while (true) {
         	// if x++ then y or y--, if x-- then y or y++
@@ -312,6 +314,18 @@ public class player {
 		remove_duplicate();
 	}
 
+	// for given index add all tiles in 2 tile radius to visible (remove duplicates)
+	public void setVisible2TileRadius(int x, int y) {
+		for (int i = -2; i <= 2; i++) {
+			for (int j = -2; j <= 2; j++) {
+				if (i+j >= -2 && i+j <= 2) {
+					attach(visible, x + i, y + j);
+				}
+			}
+		}
+		remove_duplicate();
+	}
+
     // called by grid
     public void remove_territory(int x, int y) {
         // TO DO
@@ -344,7 +358,7 @@ public class player {
 	public boolean build_unit(unit.TYPE type) {
 	    unit person;
 	    // (-0.4, 0.3, ..., 0.4)
-	    double randDist = 0; //Math.floor(Math.random() * 7) / 10 - 0.3;
+	    double randDist = 0; //units actually need to be on cener of tiles to avoid clipping on diagonals
 		switch (type) {
 		case SETTLER:
 			person = new settler(home_x + randDist, home_y + randDist, this);
@@ -371,6 +385,15 @@ public class player {
         }
         return false;
     }
+
+    //called by units to be sustained
+	public boolean take_resource(RESOURCES r, double value) {
+		if (resourceInventory.get(r) == null || resourceInventory.get(r) <= 0) {
+			return false;
+		}
+		resourceInventory.put(r, resourceInventory.get(r) - value);
+		return true;
+	}
 
 	// ******* GETTERS ***********
     // ***************************
@@ -406,16 +429,16 @@ public class player {
 	    return resourceInventory;
     };
 
-	public int getUnitProgress() {
+	public float getUnitProgress() {
 		return unitProgress;
 	}
 
-	public int getUnitProgressMax() {
+	public float getUnitProgressMax() {
 		return unitProgressMax;
 	}
 
-	public float getTotalHP() {
-	    return totalHP;
+	public float getHPMax() {
+	    return HPMax;
     }
 
     public float getHP() {

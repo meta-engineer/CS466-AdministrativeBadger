@@ -41,15 +41,7 @@ public class tile {
 	    base_effi = initE;
 	    real_effi = initE;
 
-	    if (type == TILETYPE.NONE) {
-	        movementFactor = 0;
-        } else if (type == TILETYPE.MOUNTAIN || type == TILETYPE.WATER) {
-            movementFactor = 0.1;
-        } else if (type == TILETYPE.TOWN) {
-	        movementFactor = 1;
-        } else {
-	        movementFactor = 1;
-        }
+	    setType(initType);
 
 	    parentGrid = parent;
 
@@ -76,6 +68,15 @@ public class tile {
         // grid.add_player does some checks but not other actions
         type = newType;
 
+        if (type == TILETYPE.NONE) {
+            movementFactor = 0.0;
+        } else if (type == TILETYPE.WATER || type == TILETYPE.MOUNTAIN) {
+            movementFactor = 0;
+        } else if (type == TILETYPE.TOWN) {
+            movementFactor = 0.8;
+        } else {
+            movementFactor = 1.0;
+        }
     }
 
     public TILETYPE getType() {

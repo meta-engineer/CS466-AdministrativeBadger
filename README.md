@@ -11,13 +11,11 @@ settler behaviour (expands to tile, builds town over tile?)
 worker tile improving
 
 	View
-unit bitmap resize (original/scaled arraylist)
-bar resizing
+camera settting (on init?)
 view zooming (pinch motion)
-animation loops (view states? unit state bandaid?)
+score output/actions output (frame/icons)
 Troop area selection
 Expansion selection
 tile improve selection
-score output/actions output
 
 PIVOT: screen capture???

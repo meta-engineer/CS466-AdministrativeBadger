@@ -3,6 +3,7 @@ package com.yys.cs446.es.castle_model;
 import com.yys.cs446.es.castle_model.tile.TILETYPE;
 
 import java.util.ArrayList;
+import java.util.Random;
 
 public class grid {
 	// make square grid, map can be given boundary (mountain) tiles to make a hex
@@ -17,11 +18,12 @@ public class grid {
 	private ArrayList<player> players;
 
 	public grid() {
-		this(0);
+		this(0, 466);
 	}
 
-	public grid(int mapVersion) {
+	public grid(int mapVersion, int seed) {
 		players = new ArrayList<player>();
+		Random dice = new Random(seed);
 
 		// generate type 0 map
 		switch(mapVersion) {
@@ -42,7 +44,7 @@ public class grid {
 						} else {
 							// randomly assign all inside tiles
 							TILETYPE newType;
-							double d100 = Math.random() * 100;
+							double d100 = dice.nextDouble() * 100;
 							if (d100 > 85) {
 								newType = TILETYPE.WATER;
 							} else if (d100 > 70) {
@@ -77,10 +79,7 @@ public class grid {
 	public boolean add_player(player p) {
 		// add player home, if not return false
 		int[] newHome = p.getHomeCoord();
-		// tiles that are rough terrain (water, mountains, other towns, cannot be spawn locations)
-		if (piece(newHome[0], newHome[1]).getMovementFactor() <= 0) {
-			return false;
-		}
+		// let player spawn on any tile (they should call getValidSpawnLocation if they want otherwise
 		piece(newHome[0], newHome[1]).setType(TILETYPE.TOWN);
 		players.add(p);
 		return true;

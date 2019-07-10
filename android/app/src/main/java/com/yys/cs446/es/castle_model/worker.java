@@ -15,7 +15,7 @@ public class worker extends unit{
 		super(x, y, p);
 		heldResource = null;
 		heldAmount = 0;
-		totalHP = 50;
+		HPMax = 50;
 		HP = 10;
 		AP = 0;
 	}
@@ -40,31 +40,8 @@ public class worker extends unit{
 				}
 				break;
 			case MOVE:
-				// check if there is path to follow
-				if (path != null && !path.isEmpty()) {
-					// progress towards my next tile in path
-					int effectiveX = (int)Math.round(location_x);
-					int effectiveY = (int)Math.round(location_y);
-					double newX = location_x + (path.get(0).get_x() - effectiveX) * movespeed * owner.get_grid().piece(effectiveX, effectiveY).getMovementFactor();
-					double newY = location_y + (path.get(0).get_y() - effectiveY) * movespeed * owner.get_grid().piece(effectiveX, effectiveY).getMovementFactor();
-					// if moved beyond range of current tile switch to new tile and advance in path
-					if ((int)Math.round(newX) == path.get(0).get_x() && (int)Math.round(newY) == path.get(0).get_y()) {
-						// if tile i WOULD move to is unaccessable then just stop
-						// pathfinder should have done a better job
-						if (path.get(0).getMovementFactor() <= 0.1) {
-							command = Command.STAY;
-							break;
-						}
-						// otherwise remove myself from current tile and place on next tile, then move my coords there too.
-						owner.get_grid().piece(effectiveX, effectiveY).remove_unit(this);
-						owner.get_grid().piece((int)Math.round(newX), (int)Math.round(newY)).add_unit(this);
-						path.remove(0);
-					}
-					location_x = newX;
-					location_y = newY;
-				} else {
-					command = Command.STAY;
-				}
+			    // super does most movement work
+
 				break;
 			case WORK:
 				// collect from current tile and if full/done switch to move towards home tile? nearest town tile?

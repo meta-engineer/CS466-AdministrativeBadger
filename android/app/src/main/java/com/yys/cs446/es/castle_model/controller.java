@@ -20,7 +20,7 @@ public class controller {
         //update spawn location to avoid throwing error
         int[] spawn;
         while (true) {
-            spawn = new int[]{4,4}; // g.getValidSpawnLocation();
+            spawn = new int[]{4,4}; //g.getValidSpawnLocation();
             try {
                 playerOne = new player(g, spawn[0], spawn[1]);
                 break;
@@ -35,7 +35,7 @@ public class controller {
 
         // debug (should check for failed build)
         playerOne.build_unit(unit.TYPE.WORKER);
-        playerOne.build_unit(unit.TYPE.TROOP);
+        //playerOne.build_unit(unit.TYPE.TROOP);
         //playerOne.build_unit(unit.TYPE.SETTLER);
 
         playerOne.setTargetResource(player.RESOURCES.FOOD);
@@ -58,10 +58,11 @@ public class controller {
                 //g.resolve_all();
 
                 //pass updates structs to view
+                // update only needs to happen at start to pass objects by reference
                 view.update(g, playerOne);
             }
         };
-        timer.scheduleAtFixedRate(taskNew, 0, (int)(0.1*1000));
+        timer.scheduleAtFixedRate(taskNew, 0, (int)(0.2*1000));
     }
 
     // called by ui to give specific order to change playerOne's policies

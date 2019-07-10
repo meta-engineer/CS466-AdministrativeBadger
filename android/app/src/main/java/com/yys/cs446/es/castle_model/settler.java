@@ -4,6 +4,9 @@ public class settler extends unit{
 
 	settler(double x, double y, player p) {
 		super(x, y, p);
+		HPMax = 100;
+		HP = 10;
+		AP = 1;
 	}
 	
 }
