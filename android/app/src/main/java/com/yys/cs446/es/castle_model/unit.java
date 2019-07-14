@@ -22,7 +22,7 @@ public class unit {
 	protected float HPMax;
 	// attack points
 	protected float AP;
-	protected float foodUpkeep;
+	protected double foodUpkeep;
 
 	// used my view objects to track animations
 	// no dependencies on it in unit object so coupling isn't horrendous.
@@ -47,17 +47,24 @@ public class unit {
 		path = new ArrayList<tile>();
 	}
 
+	// to be overridden
+	public double getProgress() {
+		return 0;
+	}
+
 	// progress self (finite state machine)
 	// OVERRIDED implementation for each subclass
 	public void act() {
 		// anything to do for all units in general?
 		// all units need food to be alive
-		owner.take_resource(player.RESOURCES.FOOD, foodUpkeep);
+		if (!owner.take_resource(player.RESOURCES.FOOD, foodUpkeep)) {
+			owner.destroy_Unit(this);
+		}
 
 		switch (command) {
 			case STAY:
 				// may want regeneration methods to handle specific classes
-				if (HP < HPMax) {
+				if (HP < HPMax && (owner.get_grid().piece((int)location_x, (int)location_y).getType() == tile.TILETYPE.CITY || owner.get_grid().piece((int)location_x, (int)location_y).getType() == tile.TILETYPE.TOWN)) {
 					HP += 1;
 					if (HP > HPMax) HP = HPMax; //floats might overflow
 				}
@@ -125,14 +132,16 @@ public class unit {
 	}
 
 	public void attack(unit u) {
-		float enemyAttack = u.getAP();
 		// if attack would kill unit check for capturing
 		if (AP >= u.getHP() && !(u instanceof troop)) {
 			u.set_owner(owner);
 		} else {
 			u.takeDamage(AP);
-			takeDamage(enemyAttack);
 		}
+	}
+
+	public void attack(player p) {
+		p.takeDamage(AP);
 	}
 
 	public float getHPMax() {

@@ -16,8 +16,13 @@ public class worker extends unit{
 		heldResource = null;
 		heldAmount = 0;
 		HPMax = 50;
-		HP = 10;
+		HP = 50;
 		AP = 0;
+	}
+
+	@Override
+	public double getProgress() {
+		return heldAmount / maxHeld;
 	}
 
 	@Override

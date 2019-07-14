@@ -12,6 +12,7 @@ public class controller {
     private tileView view;
     private grid g;
     private player playerOne;
+    private player playerTwo;
 
     public controller (tileView v) {
         view = v;
@@ -20,7 +21,7 @@ public class controller {
         //update spawn location to avoid throwing error
         int[] spawn;
         while (true) {
-            spawn = new int[]{4,4}; //g.getValidSpawnLocation();
+            spawn = g.getValidSpawnLocation();
             try {
                 playerOne = new player(g, spawn[0], spawn[1]);
                 break;
@@ -29,17 +30,31 @@ public class controller {
             }
         }
 
+        playerOne.add_resource(player.RESOURCES.STONE, 100);
+        playerOne.add_resource(player.RESOURCES.FOOD, 100);
+        playerOne.add_resource(player.RESOURCES.LUMBER, 100);
+
+        //Enemy
+        while (true) {
+            spawn = g.getValidSpawnLocation();
+            try {
+                playerTwo = new player(g, spawn[0], spawn[1]);
+                break;
+            } catch (Error e) {
+                Log.d("DEBUG:", "controller: Failed to spawn enemy, retrying");
+            }
+        }
+
+        playerTwo.add_resource(player.RESOURCES.STONE, 10000);
+        playerTwo.add_resource(player.RESOURCES.FOOD, 10000);
+        playerTwo.add_resource(player.RESOURCES.LUMBER, 10000);
+        playerTwo.build_unit(unit.TYPE.TROOP);
+        playerTwo.build_unit(unit.TYPE.TROOP);
+        playerTwo.build_unit(unit.TYPE.TROOP);
+
         // init states
         view.update(g, playerOne);
-        //view.setCamera(spawn[0], spawn[1]);
-
-        // debug (should check for failed build)
-        playerOne.build_unit(unit.TYPE.WORKER);
-        //playerOne.build_unit(unit.TYPE.TROOP);
-        //playerOne.build_unit(unit.TYPE.SETTLER);
-
-        playerOne.setTargetResource(player.RESOURCES.FOOD);
-
+        view.setCamera(playerOne.getHomeCoord()[0], playerOne.getHomeCoord()[1]);
     }
 
     // called after constructor (in GameActivity), starts simulation
@@ -53,9 +68,8 @@ public class controller {
                 //step player/unit specific events
                 playerOne.act();
 
-                // GRID/TILE objects are only data structs, PLAYER/UNIT move simulation
-                //step simulation events forward with current states
-                //g.resolve_all();
+                // playerOne has PID
+                playerTwo.act();
 
                 //pass updates structs to view
                 // update only needs to happen at start to pass objects by reference
@@ -71,7 +85,27 @@ public class controller {
         playerOne.setTargetResource(r);
     }
 
+    // begins process for unit.Type t
     public void startBuildUnit(unit.TYPE t) {
         playerOne.start_build_unit(t);
+    }
+
+    // set tileView to accept touch for worker improvement
+    public void startImproveTile() {
+        //view.primeSelectTile(tileView.touchType.IMPROVE_SELECT);
+    }
+
+    // set tileView to accept touch for defining defendedTiles
+    public void selectDefendArea() {
+        view.primeSelectTile(tileView.touchType.DEFEND_SELECT);
+    }
+
+    // set tileView to accept touch for tile expantion
+    public void selectExpandTile() {
+        view.primeSelectTile(tileView.touchType.EXPAND_SELECT);
+    }
+
+    public void toggleHeal() {
+        playerOne.toggle_heal();
     }
 }

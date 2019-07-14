@@ -101,14 +101,17 @@ public class GameActivity extends AppCompatActivity implements PopupMenu.OnMenuI
                 Toast.makeText(getApplicationContext(), "Start producing settler", Toast.LENGTH_SHORT).show();
                 gameController.startBuildUnit(unit.TYPE.SETTLER);
                 break;
-            case R.id.build_4:
-                Toast.makeText(getApplicationContext(), "Start improving tile", Toast.LENGTH_SHORT).show();
-                break;
             case R.id.expand_1:
-                Toast.makeText(getApplicationContext(), "Expand menu 1", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Select tile to expand to", Toast.LENGTH_SHORT).show();
+                gameController.selectExpandTile();
+                break;
+            case R.id.expand_2:
+                Toast.makeText(getApplicationContext(), "Toggle stronghold heal", Toast.LENGTH_SHORT).show();
+                gameController.toggleHeal();
                 break;
             case R.id.defend_1:
-                Toast.makeText(getApplicationContext(), "Defend menu 1", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Advancing troops", Toast.LENGTH_SHORT).show();
+                gameController.selectDefendArea();
                 break;
         }
         return true;

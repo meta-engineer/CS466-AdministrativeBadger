@@ -1,15 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@+id/build_1"
-        android:icon="@drawable/grass"
-        android:title="Produce worker"/>
+        android:title="Produce worker (food)"/>
     <item android:id="@+id/build_2"
-        android:icon="@drawable/grass"
-        android:title="Produce troop"/>
+        android:title="Produce troop (food + stone)"/>
     <item android:id="@+id/build_3"
-        android:icon="@drawable/grass"
-        android:title="Produce settler"/>
-    <item android:id="@+id/build_4"
-        android:icon="@drawable/city"
-        android:title="Improve Tile" />
+        android:title="Produce settler (food + lumber)"/>
 </menu>

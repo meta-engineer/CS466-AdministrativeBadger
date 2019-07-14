@@ -25,6 +25,7 @@ public class player {
 	private int home_x, home_y;
 	private float HPMax;
 	private float HP;
+	private boolean heal;
 	private grid g;
 	//SIDE LENGTH is protected can this be restructured?
 	//private double priority[][] = new double[grid.SIDE_LENGTH][grid.SIDE_LENGTH];
@@ -42,9 +43,11 @@ public class player {
 	//public ArrayList<troop> troops = new ArrayList<troop>();
 
 	private HashMap<RESOURCES, Double> resourceInventory;
+	private double resourceMax;
 	private RESOURCES targetResource;
 
 	private ArrayList<tile> defendedTiles;
+	private ArrayList<tile> expandTiles;
 
 	private unit.TYPE producingUnitType;
 	private float unitProgress;
@@ -60,7 +63,8 @@ public class player {
             throw new IllegalArgumentException("Could not add player to grid here");
         }
         HPMax = 1000;
-		HP = 100;
+		HP = 1000;
+		heal = false;
         owned = new ArrayList<tile>();
         adjacent = new ArrayList<tile>();
         visible = new ArrayList<tile>();
@@ -70,45 +74,59 @@ public class player {
 
 		// copy resources enum into array of player inventory
         resourceInventory = new HashMap<RESOURCES, Double>();
-		for (RESOURCES r : RESOURCES.values()) {
-			// for testing
-			resourceInventory.put(r, 50.0);
+        for (RESOURCES r : RESOURCES.values()) {
+        	resourceInventory.put(r, 0.0);
 		}
+		resourceMax = 999;
 		targetResource = RESOURCES.NONE;
 
 		producingUnitType = unit.TYPE.NONE;
 		unitProgress = 0;
 
-		defendedTiles = new ArrayList<tile>();
+		ArrayList<tile> defaultTiles = new ArrayList<tile>();
 		// defended tiles are home and all 6 around it
-		defendedTiles.add(g.piece(home_x, home_y));
-		defendedTiles.add(g.piece(home_x - 1, home_y + 1));
-		defendedTiles.add(g.piece(home_x - 1, home_y));
-		defendedTiles.add(g.piece(home_x, home_y - 1));
-		defendedTiles.add(g.piece(home_x, home_y + 1));
-		defendedTiles.add(g.piece(home_x + 1, home_y));
-		defendedTiles.add(g.piece(home_x + 1, home_y - 1));
+		defaultTiles.add(g.piece(home_x, home_y));
+		defaultTiles.add(g.piece(home_x - 1, home_y + 1));
+		defaultTiles.add(g.piece(home_x - 1, home_y));
+		defaultTiles.add(g.piece(home_x, home_y - 1));
+		defaultTiles.add(g.piece(home_x, home_y + 1));
+		defaultTiles.add(g.piece(home_x + 1, home_y));
+		defaultTiles.add(g.piece(home_x + 1, home_y - 1));
+		for (tile t : defaultTiles) {
+			if (t.getMovementFactor() == 0) {
+				//defaultTiles.remove(t);
+			}
+		}
+		set_defended_tiles(defaultTiles);
+
+		expandTiles = new ArrayList<tile>();
 	}
 
 	// called every game tick to let units act (as finite state machines)
 	public void act() {
 		//cascade to units
-	    for (unit q : myUnits) {
-	        q.act();
-        }
+		if (myUnits != null && !myUnits.isEmpty()) {
+			try {
+				for (unit q : myUnits) {
+					q.act();
+				}
+			} catch (Exception e) {
+				Log.d("DEBUG", "act: " + e.getMessage());
+			}
+		}
 
         // home tile producing units?
 		if (producingUnitType != unit.TYPE.NONE) {
 	    	// producing units costs food? stone?
 
 			if (producingUnitType == unit.TYPE.WORKER) {
-				if (resourceInventory.get(RESOURCES.FOOD) > 0) {
+				if (resourceInventory.get(RESOURCES.FOOD) > 5) {
 					// reduce food by 1 and increase progress (20 food to produce)
 					resourceInventory.put(RESOURCES.FOOD, resourceInventory.get(RESOURCES.FOOD) - 0.2);
 					unitProgress += 1;
 				}
 			} else if (producingUnitType == unit.TYPE.TROOP) {
-				if (resourceInventory.get(RESOURCES.FOOD) > 0 && resourceInventory.get(RESOURCES.STONE) > 0) {
+				if (resourceInventory.get(RESOURCES.FOOD) > 5 && resourceInventory.get(RESOURCES.STONE) > 5) {
 					// reduce food by 1 and increase progress (20 food to produce, 20 stone)
 					resourceInventory.put(RESOURCES.FOOD, resourceInventory.get(RESOURCES.FOOD) - 0.2);
 					resourceInventory.put(RESOURCES.STONE, resourceInventory.get(RESOURCES.STONE) - 0.2);
@@ -117,7 +135,7 @@ public class player {
 					// if not enough resources: send notification message?
 				}
 			} else if (producingUnitType == unit.TYPE.SETTLER) {
-				if (resourceInventory.get(RESOURCES.FOOD) > 0 && resourceInventory.get(RESOURCES.LUMBER) > 0) {
+				if (resourceInventory.get(RESOURCES.FOOD) > 5 && resourceInventory.get(RESOURCES.LUMBER) > 5) {
 					// reduce food by 1 and increase progress (20 food to produce, 20 stone)
 					resourceInventory.put(RESOURCES.FOOD, resourceInventory.get(RESOURCES.FOOD) - 0.2);
 					resourceInventory.put(RESOURCES.LUMBER, resourceInventory.get(RESOURCES.LUMBER) - 0.2);
@@ -135,7 +153,14 @@ public class player {
 		}
 
 		//recover HP
-		HP += 1;
+		if (heal && take_resource(RESOURCES.STONE, 0.1) && take_resource(RESOURCES.LUMBER, 0.1)) {
+	    	HP += 1;
+		}
+
+		// comeback mechanic
+        if (resourceInventory.get(RESOURCES.FOOD) < 10) add_resource(RESOURCES.FOOD, 0.01);
+        if (resourceInventory.get(RESOURCES.LUMBER) < 10) add_resource(RESOURCES.LUMBER, 0.01);
+
     }
 
     // ****** UI CALLED ACTIONS TO CHANGE STATES *******
@@ -202,9 +227,9 @@ public class player {
             answer.add(g.piece(iX, iY));
             if (iX == f.get_x() && iY == f.get_y()) break;
         }
-		Log.d("Pathfindering", "getPath: " + Integer.toString(s.get_x()) + ", " + Integer.toString(s.get_y()) + " to " + Integer.toString(f.get_x()) + ", " + Integer.toString(f.get_y()) + " of size " + Integer.toString(answer.size()));
+		//Log.d("Pathfindering", "getPath: " + Integer.toString(s.get_x()) + ", " + Integer.toString(s.get_y()) + " to " + Integer.toString(f.get_x()) + ", " + Integer.toString(f.get_y()) + " of size " + Integer.toString(answer.size()));
         for (tile t : answer) {
-			Log.d("Pathfindering", "madePath: " + "(" + t.get_x() + ", " + t.get_y() + ")");
+			//Log.d("Pathfindering", "madePath: " + "(" + t.get_x() + ", " + t.get_y() + ")");
 		}
         return answer;
     }
@@ -214,8 +239,11 @@ public class player {
 	    // delegate depending on what type of unit is asking for an order
         if (u instanceof worker) {
             // if there is a target resource, find path to it and give order
-            if (targetResource != RESOURCES.NONE) {
+            if (targetResource == RESOURCES.NONE) {
+				u.order_move(getPath(g.piece((int)Math.round(u.get_location_x()), (int)Math.round(u.get_location_y())), g.piece(home_x, home_y)));
+			} else {
                 for (tile t : adjacent) {
+                	// if tile is desired resource AND its not already being collected
                     if (t.getResource() == targetResource) {
                         u.order_move(getPath(g.piece((int)Math.round(u.get_location_x()), (int)Math.round(u.get_location_y())), t));
                         return;
@@ -227,6 +255,12 @@ public class player {
 			if (!defendedTiles.isEmpty()) {
 				int tileToDefend = (int)(Math.random() * defendedTiles.size());
 				u.order_move(getPath(g.piece((int)Math.round(u.get_location_x()), (int)Math.round(u.get_location_y())), defendedTiles.get(tileToDefend)));
+			}
+		} else if (u instanceof settler) {
+        	if (!expandTiles.isEmpty()) {
+        		// order settler to move to expand tile, then stop other settlers from going there
+        		u.order_move(getPath(g.piece((int)Math.round(u.get_location_x()), (int)Math.round(u.get_location_y())), expandTiles.get(0)));
+        		expandTiles.remove(0);
 			}
 		}
 
@@ -290,6 +324,8 @@ public class player {
 	// called by grid and constructor
 	//checked
 	public void add_territory(int x, int y) {
+		g.piece(x, y).set_owner(this);
+
 		attach(owned, x, y);
 		attach(adjacent, x - 1, y + 1);
 		attach(adjacent, x - 1, y);
@@ -333,16 +369,12 @@ public class player {
 
     // does this destroy a specific unit, or any unit of the same type?
 	public void destroy_Unit(unit u) {
-	    for (int i = 0; i < myUnits.size(); i++) {
-	        if (u.equals(myUnits.get(i))) {
-	            // removes unit from self
-	            myUnits.remove(i);
-	            // removes unit from grid knowledge (assuming grid also removes same instance)
-	            g.piece((int)Math.round(u.get_location_x()), (int)Math.round(u.get_location_y())).remove_unit(u);
-	            return;
-            }
-        }
-        System.out.println("destroy failed: could not find that unit for this player");
+		try {
+			g.piece((int) Math.round(u.get_location_x()), (int) Math.round(u.get_location_y())).remove_unit(u);
+			myUnits.remove(u);
+		} catch (Exception e) {
+			Log.d("DEBUG", "destroy_Unit: " + e.getMessage());
+		}
 	}
 
 	// after unit has been created (has location) add to array
@@ -353,23 +385,21 @@ public class player {
 		g.piece((int)Math.round(u.get_location_x()), (int)Math.round(u.get_location_y())).add_unit(u);
 	}
 
-    // builds unit type (should be a time/resource cost?)
+    // builds unit type (time/resource cost is in start_build_unit
     // adds them to home tile
 	public boolean build_unit(unit.TYPE type) {
 	    unit person;
-	    // (-0.4, 0.3, ..., 0.4)
-	    double randDist = 0; //units actually need to be on cener of tiles to avoid clipping on diagonals
 		switch (type) {
 		case SETTLER:
-			person = new settler(home_x + randDist, home_y + randDist, this);
+			person = new settler(home_x, home_y, this);
             add_Unit(person);
             return true;
 		case WORKER:
-			person = new worker(home_x + randDist, home_y + randDist, this);
+			person = new worker(home_x, home_y, this);
             add_Unit(person);
             return true;
 		case TROOP:
-			person = new troop(home_x + randDist, home_y + randDist, this);
+			person = new troop(home_x, home_y, this);
             add_Unit(person);
 			return true;
 		}
@@ -380,7 +410,11 @@ public class player {
 	// called by workers when they want to deposit resources
     public boolean add_resource(RESOURCES r, double value) {
 	    if (resourceInventory.get(r) != null) {
-            resourceInventory.put(r, resourceInventory.get(r) + value);
+	    	if (resourceInventory.get(r) + value > resourceMax) {
+	    		resourceInventory.put(r, resourceMax);
+			} else {
+				resourceInventory.put(r, resourceInventory.get(r) + value);
+			}
             return true;
         }
         return false;
@@ -388,11 +422,38 @@ public class player {
 
     //called by units to be sustained
 	public boolean take_resource(RESOURCES r, double value) {
-		if (resourceInventory.get(r) == null || resourceInventory.get(r) <= 0) {
+		if (resourceInventory.get(r) == null || resourceInventory.get(r) - value < 0) {
 			return false;
 		}
 		resourceInventory.put(r, resourceInventory.get(r) - value);
 		return true;
+	}
+
+	public boolean set_defended_tiles(ArrayList<tile> dT) {
+		// validity check for dT?
+		defendedTiles = dT;
+		return true;
+	}
+
+	public void set_heal(boolean h) {
+		heal = h;
+	}
+
+	public void toggle_heal() {
+		heal = !heal;
+	}
+
+	public void takeDamage(double dmg) {
+		HP -= dmg;
+		if (HP <= 0) {
+			// something bad happens
+		}
+	}
+
+	public void add_expand_tile(tile t) {
+		// is really a toggle
+		if (expandTiles.contains(t)) expandTiles.remove(t);
+		else expandTiles.add(t);
 	}
 
 	// ******* GETTERS ***********
@@ -400,21 +461,43 @@ public class player {
 
     // called from UI for tile overlay info
     public boolean isTileVisible(int x, int y) {
-        for (tile t : visible) {
-            if (t.get_x() == x && t.get_y() == y) {
-                return true;
-            }
-        }
-        return false;
+		try {
+			for (tile t : visible) {
+				if (t.get_x() == x && t.get_y() == y) {
+					return true;
+				}
+			}
+		} catch (Exception e) {
+			Log.d("DEBUG", "isTileVisible: " + e.getMessage());
+		}
+		return false;
     }
     public boolean isTileOwned(int x, int y) {
-        for (tile t : owned) {
-            if (t.get_x() == x && t.get_y() == y) {
-                return true;
-            }
-        }
+		try {
+			for (tile t : owned) {
+				if (t.get_x() == x && t.get_y() == y) {
+					return true;
+				}
+			}
+		} catch (Exception e) {
+			Log.d("DEBUG", "isTileOwned: " + e.getMessage());
+		}
         return false;
     }
+
+    public boolean isTileAdjacent(int x, int y) {
+		try {
+			for (tile t : adjacent) {
+				if (t.get_x() == x && t.get_y() == y) {
+					return true;
+				}
+			}
+		} catch (Exception e) {
+			Log.d("DEBUG", "isTileAdjacent: " + e.getMessage());
+		}
+		return false;
+	}
+
     public int[] getHomeCoord() {
         int[] home = {home_x, home_y};
         return home;
@@ -444,6 +527,14 @@ public class player {
     public float getHP() {
 	    return HP;
     }
+
+	public ArrayList<tile> getDefendedTiles() {
+		return defendedTiles;
+	}
+
+	public ArrayList<tile> getExpandTiles() {
+		return expandTiles;
+	}
 
 	public void print_self() {
 		System.out.println(this + " has territories:  " + owned);

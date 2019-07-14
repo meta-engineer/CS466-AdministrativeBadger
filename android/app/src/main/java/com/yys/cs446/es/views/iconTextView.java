@@ -21,8 +21,15 @@ public class iconTextView extends android.support.v7.widget.AppCompatTextView {
         createView();
     }
 
+    public iconTextView(Context context, AttributeSet attrs, int defStyle) {
+        super(context, attrs, defStyle);
+        createView();
+    }
+
     private void createView() {
         setGravity(Gravity.CENTER);
-        setTypeface(Typeface.createFromAsset(context.getAssets(), "raw/fa_fr.otf"));
+        Typeface tf = Typeface.createFromAsset(getContext().getAssets(), "fa_fr.otf");
+        setTypeface(tf);
+        //setTypeface(Typeface.createFromAsset(context.getAssets(), "raw/fa_fr.otf"));
     }
 }

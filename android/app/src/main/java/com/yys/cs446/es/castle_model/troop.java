@@ -9,7 +9,7 @@ public class troop extends unit{
 	troop(double x, double y, player p) {
 		super(x, y, p);
 		HPMax = 100;
-		HP = 10;
+		HP = 100;
 		AP = 1;
 	}
 
@@ -17,28 +17,39 @@ public class troop extends unit{
 	@Override
 	public void act() {
 		super.act();
+
 		switch (command) {
 			case STAY:
 				// detect if there are enemies to attack/capture?
-				// NO
+				{
+					ArrayList<unit> unitList = owner.get_grid().piece((int)location_x, (int)location_y).get_units();
+					for (unit u : unitList) {
+						if (u.owner != owner) {
+							command = Command.COMBAT;
+							break;
+						}
+					}
+				}
+				// else
 				owner.getNewOrder(this);
 				// after moving troop will detect enemies and switch to combat mode
 
 				break;
 			case MOVE:
-				// check if there is path to follow
-				if (path != null && !path.isEmpty()) {
-					// after super moved
-					// detect if there are enemies to attack/capture
-					ArrayList<unit> unitList = path.get(0).get_units();
-					for (unit u : unitList) {
-						if (u.owner != owner) {
-							command = Command.COMBAT;
-						}
-					}
-				} else {
-					command = Command.STAY;
-				}
+				// super does movement work
+                //check for enemies on this tile before leaving
+                {
+                    ArrayList<unit> unitList = owner.get_grid().piece((int)location_x, (int)location_y).get_units();
+                    for (unit u : unitList) {
+                        if (u.owner != owner) {
+                            //reset to tile and attack
+                            location_x = path.get(0).get_x();
+                            location_y = path.get(0).get_y();
+                            command = Command.COMBAT;
+                            break;
+                        }
+                    }
+                }
 				break;
 			case WORK:
 				// troops dont do work
@@ -56,7 +67,7 @@ public class troop extends unit{
 					if (u.owner != owner && u instanceof troop) {
 						attack(u);
 						// can only do attack on one unit
-						break;
+						return;
 					}
 				}
 
@@ -66,8 +77,15 @@ public class troop extends unit{
 					if (u.owner != owner) {
 						attack(u);
 						// can only do attack on one unit
-						break;
+						return;
 					}
+				}
+
+				// LAST check for attackable tile
+				tile myTile = owner.get_grid().piece(effectiveX, effectiveY);
+				if (myTile.getType() == tile.TILETYPE.CITY && myTile.get_owner() != owner) {
+					attack(myTile.get_owner());
+					return;
 				}
 				// no units were attacked therefore just switch to STAY
 				command = Command.STAY;

@@ -11,7 +11,7 @@ public class tile {
     // change to tile TYPES
     // use TILETYPE in player for resource stock?
     public enum TILETYPE {
-        NONE, GRASS, WATER, GRAIN, WOOD, MOUNTAIN, TOWN
+        NONE, GRASS, WATER, GRAIN, WOOD, STONE, MOUNTAIN, TOWN, CITY
     }
     public static final int TURNS_TO_CONQUER_TILE = 5;
 
@@ -34,14 +34,14 @@ public class tile {
     //private ArrayList<worker> workers;
     //private ArrayList<troop> troops;
 
+    public int animState = 0;
+
 	public tile(int initX, int initY, double initE, TILETYPE initType, grid parent) {
 	    x = initX;
 	    y = initY;
         type = initType;
-	    base_effi = initE;
-	    real_effi = initE;
 
-	    setType(initType);
+	    setType(initType, initE);
 
 	    parentGrid = parent;
 
@@ -63,16 +63,18 @@ public class tile {
     }
 
     // unsafely changes tile type
-    public void setType(TILETYPE newType) {
+    public void setType(TILETYPE newType, double effi) {
         // should be logic for what changes can occur (settlers making towns, workers building on tiles?)
         // grid.add_player does some checks but not other actions
         type = newType;
+        base_effi = effi;
+        real_effi = effi;
 
         if (type == TILETYPE.NONE) {
             movementFactor = 0.0;
         } else if (type == TILETYPE.WATER || type == TILETYPE.MOUNTAIN) {
             movementFactor = 0;
-        } else if (type == TILETYPE.TOWN) {
+        } else if (type == TILETYPE.TOWN || type == TILETYPE.CITY) {
             movementFactor = 0.8;
         } else {
             movementFactor = 1.0;
@@ -89,7 +91,7 @@ public class tile {
             return RESOURCES.FOOD;
         } else if (type == TILETYPE.WOOD) {
 	        return RESOURCES.LUMBER;
-        } else if (type == TILETYPE.MOUNTAIN) {
+        } else if (type == TILETYPE.STONE) {
             return RESOURCES.STONE;
         } else {
             return RESOURCES.NONE;

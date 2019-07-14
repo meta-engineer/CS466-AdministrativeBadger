@@ -10,7 +10,7 @@ public class grid {
 	// for tile [x,y]: [x-1,y] and [x+1,y] are adjacent (same row)
 	//				   [x-1,y+1], [x,y-1], [x,y+1], [x+1,y-1]
 	// meaning for lower rows, lower columns are closer, and for higher rows, higher columns are closer
-	private final int SIDE_LENGTH;
+	public final int SIDE_LENGTH;
 	private tile tiles[][];
 
 	// grid knows about players on it for view objects to draw (controller only gives playerOne)
@@ -18,17 +18,24 @@ public class grid {
 	private ArrayList<player> players;
 
 	public grid() {
-		this(0, 466);
+		this(0, 0);
 	}
 
+	// mapversion is ignored atm, seed == 0 is random
 	public grid(int mapVersion, int seed) {
 		players = new ArrayList<player>();
-		Random dice = new Random(seed);
+
+		Random dice = null;
+		if (seed == 0) {
+			dice = new Random();
+		} else {
+			dice = new Random(seed);
+		}
 
 		// generate type 0 map
 		switch(mapVersion) {
 			default:
-				SIDE_LENGTH = 12;
+				SIDE_LENGTH = 18;
 				tiles = new tile[SIDE_LENGTH][SIDE_LENGTH];
 
 				for (int x = 0; x < SIDE_LENGTH; ++x) {
@@ -36,7 +43,7 @@ public class grid {
 						// create mountains on edges of hex
 						if (x == 0 && y > SIDE_LENGTH/2 || x == SIDE_LENGTH - 1 && y < SIDE_LENGTH/2
 								|| y == 0 && x > SIDE_LENGTH/2 || y == SIDE_LENGTH - 1 && x < SIDE_LENGTH/2
-								|| x+y == Math.floor(SIDE_LENGTH/2) || x+y == Math.ceil(SIDE_LENGTH * 1.3)) {
+								|| x+y == Math.floor(SIDE_LENGTH/2) || x+y == Math.ceil(SIDE_LENGTH * 1.35)) {
 							tiles[x][y] = new tile(x,y,0, TILETYPE.MOUNTAIN, this);
 						} else if (x+y < Math.floor(SIDE_LENGTH/2) || x+y > Math.ceil(SIDE_LENGTH * 1.3)) {
 							// create empty tiles outside of mountains
@@ -47,10 +54,12 @@ public class grid {
 							double d100 = dice.nextDouble() * 100;
 							if (d100 > 85) {
 								newType = TILETYPE.WATER;
-							} else if (d100 > 70) {
+							} else if (d100 > 75) {
 								newType = TILETYPE.GRAIN;
-							} else if (d100 > 55) {
+							} else if (d100 > 65) {
 								newType = TILETYPE.WOOD;
+							} else if (d100 > 55) {
+								newType = TILETYPE.STONE;
 							} else {
 								newType = TILETYPE.GRASS;
 							}
@@ -72,6 +81,7 @@ public class grid {
 	}
 
 	// this is getTile() ?
+	// no validation?
 	public tile piece(int x, int y) {
 		return tiles[x][y];
 	}
@@ -80,8 +90,12 @@ public class grid {
 		// add player home, if not return false
 		int[] newHome = p.getHomeCoord();
 		// let player spawn on any tile (they should call getValidSpawnLocation if they want otherwise
-		piece(newHome[0], newHome[1]).setType(TILETYPE.TOWN);
+		piece(newHome[0], newHome[1]).setType(TILETYPE.CITY, 0);
+        piece(newHome[0], newHome[1]).set_owner(p);
 		players.add(p);
+
+		// assuming they've used getValidSpawnLocation they also need 3 starting resources
+
 		return true;
 	}
 
@@ -109,13 +123,29 @@ public class grid {
 	}
 
 	public int[] getValidSpawnLocation() {
-		int[] goodSpawn = new int[]{(int)Math.random() * SIDE_LENGTH, (int)Math.random() * SIDE_LENGTH};
+		int[] goodSpawn = new int[2];
 		while (true) {
-			if (piece(goodSpawn[0], goodSpawn[1]).getMovementFactor() != 0) {
+			goodSpawn[0] = (int)(Math.random() * SIDE_LENGTH);
+			goodSpawn[1] = (int)(Math.random() * SIDE_LENGTH);
+			tile checkTile = piece(goodSpawn[0], goodSpawn[1]);
+			//check if spawn location is ok
+			if (checkTile.getMovementFactor() != 0
+					&& checkTile.getType() != TILETYPE.CITY
+					&& checkTile.getType() != TILETYPE.TOWN) {
+				// don't spawn too close to other players
+				// throw exception for double loop break
+				try {
+					for (tile t : adjacent(goodSpawn[0], goodSpawn[1])) {
+						if (t.getType() == TILETYPE.TOWN || t.getType() == TILETYPE.CITY) {
+							throw new Exception("Bad spawn location");
+						}
+					}
+				} catch (Exception e) {
+					continue;
+				}
+
 				return goodSpawn;
 			}
-			goodSpawn[0] = (int)Math.random() * SIDE_LENGTH;
-			goodSpawn[1] = (int)Math.random() * SIDE_LENGTH;
 		}
 	}
 }

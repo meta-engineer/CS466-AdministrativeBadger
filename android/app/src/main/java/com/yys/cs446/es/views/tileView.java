@@ -27,6 +27,7 @@ import com.yys.cs446.es.castle_model.worker;
 import com.yys.cs446.es.castle_model.troop;
 import com.yys.cs446.es.castle_model.settler;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -39,14 +40,18 @@ public class tileView extends View {
     // class variables
     private Paint xPaintSquare;
 
-    private boolean toggleSelect = false;
+    // different touch options
+    public enum touchType {
+        CAMERA, EXPAND_SELECT, DEFEND_SELECT, IMPROVE_SELECT
+    }
+    private touchType touchOption = touchType.CAMERA;
 
     private float originX = 0;
     private float originY = 0;
     private float lastOffsetX;
     private float lastOffsetY;
     private float lastPinchDistance;
-    private double zoomFactor;
+    private double zoomFactor = 0.25;
     
     // maybe view only needs to know about myGrid.getTiles()
     // if object is copied it will need strict updates (but avoids race conditions?)
@@ -62,8 +67,8 @@ public class tileView extends View {
     private HashMap<String, Bitmap> originalUnitBitmaps;
     private HashMap<String, Bitmap> scaledUnitBitmaps;
 
-    private float tileWidth = 170;
-    private float tileHeight = 300;
+    private float tileWidth;
+    private float tileHeight;
 
     public tileView(Context context) {
         super(context);
@@ -92,17 +97,25 @@ public class tileView extends View {
     private void init(@Nullable AttributeSet set) {
         xPaintSquare = new Paint(Paint.ANTI_ALIAS_FLAG);
         xPaintSquare.setColor(Color.WHITE);
-        xPaintSquare.setTextSize(30);
+        xPaintSquare.setTextSize(40);
 
         //load original Tile Bitmaps
         originalTileBitmaps = new HashMap<String, Bitmap>();
         originalTileBitmaps.put("grassTile", BitmapFactory.decodeResource(getResources(), R.drawable.grass));
         originalTileBitmaps.put("grainTile", BitmapFactory.decodeResource(getResources(), R.drawable.grain));
         originalTileBitmaps.put("woodsLightTile", BitmapFactory.decodeResource(getResources(), R.drawable.woods_light));
+        originalTileBitmaps.put("stoneTile", BitmapFactory.decodeResource(getResources(), R.drawable.ore));
         originalTileBitmaps.put("waterTile", BitmapFactory.decodeResource(getResources(), R.drawable.water));
         originalTileBitmaps.put("townTile", BitmapFactory.decodeResource(getResources(), R.drawable.town));
+        originalTileBitmaps.put("cityTile1", BitmapFactory.decodeResource(getResources(), R.drawable.city1));
+        originalTileBitmaps.put("cityTile2", BitmapFactory.decodeResource(getResources(), R.drawable.city2));
+        originalTileBitmaps.put("cityTile3", BitmapFactory.decodeResource(getResources(), R.drawable.city3));
+        originalTileBitmaps.put("cityTile4", BitmapFactory.decodeResource(getResources(), R.drawable.city4));
         originalTileBitmaps.put("ownedTile", BitmapFactory.decodeResource(getResources(), R.drawable.tile_owned));
         originalTileBitmaps.put("selectedTile", BitmapFactory.decodeResource(getResources(), R.drawable.tile_selected));
+        originalTileBitmaps.put("defendTile", BitmapFactory.decodeResource(getResources(), R.drawable.tile_defending));
+        originalTileBitmaps.put("collectTile", BitmapFactory.decodeResource(getResources(), R.drawable.tile_collecting));
+        originalTileBitmaps.put("expandTile", BitmapFactory.decodeResource(getResources(), R.drawable.tile_expanding));
         originalTileBitmaps.put("fogTile", BitmapFactory.decodeResource(getResources(), R.drawable.fog));
         originalTileBitmaps.put("mountainTile", BitmapFactory.decodeResource(getResources(), R.drawable.mountain));
         originalTileBitmaps.put("tileHPFrame", BitmapFactory.decodeResource(getResources(), R.drawable.hp_bar_frame));
@@ -110,7 +123,10 @@ public class tileView extends View {
         originalTileBitmaps.put("tileProgressFrame", BitmapFactory.decodeResource(getResources(), R.drawable.progress_bar_frame));
         originalTileBitmaps.put("tileProgressFill", BitmapFactory.decodeResource(getResources(), R.drawable.progress_bar_fill));
 
-        scaledTileBitmaps = new HashMap<String, Bitmap>(originalTileBitmaps);
+        tileWidth = originalTileBitmaps.get("grassTile").getWidth();
+        tileHeight = originalTileBitmaps.get("grassTile").getHeight();
+
+        scaledTileBitmaps = new HashMap<String, Bitmap>();
 
         // load original unit bitmaps
         originalUnitBitmaps = new HashMap<String, Bitmap>();
@@ -133,7 +149,9 @@ public class tileView extends View {
         originalUnitBitmaps.put("unitHPFrame", BitmapFactory.decodeResource(getResources(), R.drawable.unit_hp_bar_frame));
         originalUnitBitmaps.put("unitHPFill", BitmapFactory.decodeResource(getResources(), R.drawable.unit_hp_bar_fill));
 
-        scaledUnitBitmaps = new HashMap<String, Bitmap>(originalUnitBitmaps);
+        originalUnitBitmaps.put("enemyWalkLeft1", BitmapFactory.decodeResource(getResources(), R.drawable.enemy_worker_left1));
+
+        scaledUnitBitmaps = new HashMap<String, Bitmap>();
 
         // when ui is built get dimensions
         getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -143,8 +161,8 @@ public class tileView extends View {
                     getViewTreeObserver().removeOnGlobalLayoutListener(this);
                 else
                     getViewTreeObserver().removeGlobalOnLayoutListener(this);
-                    zoomFactor = 4;
-                    updateBitmapScale();
+
+                updateBitmapScale();
              }
         });
 
@@ -164,50 +182,57 @@ public class tileView extends View {
         return tup;
     }
 
+    // does not guarentee in valid index range
+    public int[] convertPixelsToIndicies(double xPixel, double yPixel) {
+        int x = (int) Math.round((xPixel - (tileWidth/2) + originX) / 0.74 / tileWidth);
+        int y = (int) Math.round(((yPixel - (tileHeight/2) + originY) - (x * tileHeight * 0.29)) / tileHeight / 0.577);
+        int[] tup = {y,x};
+        return tup;
+    }
+
     // uses private zoomfactor and rescales bitmaps
     // must rescale ORIGINAL bitmaps to avoid accumulating compression
     private void updateBitmapScale() {
-        Log.d("DEBUG", "updateBitmapScale: " + zoomFactor);
-        Iterator it = originalTileBitmaps.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry pair = (Map.Entry)it.next();
+        // set origin to be proportion of current
+        originX = (originX + getWidth()/2) / tileWidth;
+        originY = (originY + getHeight()/2) / tileHeight;
+
+        for (String key : originalTileBitmaps.keySet()) {
             // use pair.getKey(), pair.getValue()
-            scaledTileBitmaps.put(pair.getKey().toString(), getResizedBitmap(originalTileBitmaps.get(pair.getKey()), (int)(getWidth() / zoomFactor), (int)((getWidth()  / zoomFactor) * 1.5)));
-            it.remove();
+            scaledTileBitmaps.put(key, getResizedBitmap(originalTileBitmaps.get(key), (int)(getWidth() * zoomFactor), (int)((getWidth() * zoomFactor) * 1.5)));
         }
 
         // build unit dimensions off adjusted tile dimensions
         tileWidth = scaledTileBitmaps.get("grassTile").getWidth();
         tileHeight = scaledTileBitmaps.get("grassTile").getHeight();
 
-        Iterator ut = originalUnitBitmaps.entrySet().iterator();
-        while (ut.hasNext()) {
-            Map.Entry pair = (Map.Entry)ut.next();
+        for (String key : originalUnitBitmaps.keySet()) {
             // use pair.getKey(), pair.getValue()
-            scaledUnitBitmaps.put(pair.getKey().toString(), getResizedBitmap(originalUnitBitmaps.get(pair.getKey()), (int)tileWidth/2, (int)tileHeight/3));
-            ut.remove();
+            scaledUnitBitmaps.put(key, getResizedBitmap(originalUnitBitmaps.get(key), (int)tileWidth/2, (int)tileHeight/3));
         }
 
+        // rebuild origin to be proportion of new
+        originX = originX * tileWidth - getWidth()/2;
+        originY = originY * tileHeight - getHeight()/2;
     }
 
+    // requires tileHeight/tileWidth to be set before calling
     public void setCamera(int xIndex, int yIndex) {
         int[] newOrigin = convertIndiciesToPixels(xIndex, yIndex);
         originX = newOrigin[0];
         originY = newOrigin[1];
     }
 
-    public void interact() {
-        toggleSelect = !toggleSelect;
-        postInvalidate();
+    public void primeSelectTile(touchType type) {
+        touchOption = type;
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
-
         //canvas.drawRect(xRectSquare, xPaintSquare);
 
         // catches baf/ uninitialized states
-        if (myGrid == null) {
+        if (myGrid == null || scaledTileBitmaps.isEmpty() || scaledUnitBitmaps.isEmpty()) {
             //canvas.drawBitmap(originalTileBitmaps.get("townTile"), 0, 0, null);
             return;
         }
@@ -234,37 +259,27 @@ public class tileView extends View {
                     continue;
                 }
 
-                if (!myPlayer.isTileVisible(i, j)) {
+                if (false && !myPlayer.isTileVisible(i, j)) {
                     //** no fog of war for debugging
                     canvas.drawBitmap(scaledTileBitmaps.get("fogTile"), x, y, null);
                     continue;
                 }
 
-                if (gridArray[i][j].getType() == TILETYPE.GRASS) {
-                    canvas.drawBitmap(scaledTileBitmaps.get("grassTile"), x, y, null);
-                } else if (gridArray[i][j].getType() == TILETYPE.GRAIN) {
-                    canvas.drawBitmap(scaledTileBitmaps.get("grainTile"), x, y, null);
-                } else if (gridArray[i][j].getType() == TILETYPE.WOOD) {
-                    canvas.drawBitmap(scaledTileBitmaps.get("woodsLightTile"), x, y, null);
-                } else if (gridArray[i][j].getType() == TILETYPE.WATER) {
-                    canvas.drawBitmap(scaledTileBitmaps.get("waterTile"), x, y, null);
-                } else if (gridArray[i][j].getType() == TILETYPE.TOWN) {
-                    canvas.drawBitmap(scaledTileBitmaps.get("townTile"), x, y, null);
-                } else if (gridArray[i][j].getType() == TILETYPE.MOUNTAIN) {
-                    canvas.drawBitmap(scaledTileBitmaps.get("mountainTile"), x, y, null);
-                }
+                // draw base tile bitmap[
+                canvas.drawBitmap(determineBitmap(gridArray[i][j]), x, y, null);
 
                 // draw player ile overlay info
                 // may need testing for Zbuffer (draw order)
                 // but should be good as long ad elements stay in the 2:3 width:length ratio
-                if (myPlayer.isTileOwned(i,j)) {
+                if (myPlayer.isTileAdjacent(i,j)) {
                     canvas.drawBitmap(scaledTileBitmaps.get("ownedTile"), x, y, null);
                 }
+
             }
         }
 
-        //draw units
-        // animation frames stored in???
+
+        //draw units, animation frames stored in unit objects
         for (player p : myGrid.getPlayers()) {
             for (unit u : p.myUnits) {
                 // select correct bitmap to draw
@@ -274,6 +289,10 @@ public class tileView extends View {
 
                 // draw selected bitmap
                 int[] pix = convertIndiciesToPixels(u.get_location_x(), u.get_location_y());
+                // offset enemies
+                if (u.get_owner() != myPlayer) {
+                    pix[1] -= (int)(tileHeight/10);
+                }
                 canvas.drawBitmap(unitBitmap,
                         pix[0] + tileWidth/2 - unitBitmap.getWidth()/2,
                         pix[1] + tileHeight*2/3 - unitBitmap.getHeight()/2,
@@ -284,10 +303,20 @@ public class tileView extends View {
                             pix[1] + tileHeight * 2 / 3 - unitBitmap.getHeight() / 2,
                             null);
                     int dynamicWidth = (int) (scaledUnitBitmaps.get("unitHPFrame").getWidth() * (u.getHP() / u.getHPMax()));
+                    if (dynamicWidth <= 0 ) dynamicWidth = 1;
                     canvas.drawBitmap(getResizedBitmap(scaledUnitBitmaps.get("unitHPFill"), dynamicWidth, scaledUnitBitmaps.get("unitHPFrame").getHeight()),
                             pix[0] + tileWidth / 2 - unitBitmap.getWidth() / 2,
                             pix[1] + tileHeight * 2 / 3 - unitBitmap.getHeight() / 2,
                             null);
+                }
+
+                if (u instanceof settler && u.getProgress() > 0) {
+                    canvas.drawBitmap(scaledTileBitmaps.get("tileProgressFrame"), pix[0], pix[1] + tileHeight/3, null);
+                    int dynamicWidth = (int) (tileWidth * u.getProgress());
+                    if (dynamicWidth <= 0) dynamicWidth = 1;
+                    canvas.drawBitmap(getResizedBitmap(scaledTileBitmaps.get("tileProgressFill"), dynamicWidth, (int)tileHeight), pix[0], pix[1] + tileHeight/3, null);
+                } else if (u instanceof worker && u.status() == unit.Command.WORK) {
+                    canvas.drawBitmap(scaledTileBitmaps.get("collectTile"), pix[0], pix[1], null);
                 }
             }
         }
@@ -295,9 +324,7 @@ public class tileView extends View {
         // draw player overlay information
         // **This is not UI which is outside of tileView
         {
-            //int x = (int) (myPlayer.getSelectY() * tileWidth * 0.7143) - Math.round(originX);
-            //int y = (int) (myPlayer.getSelectY() * tileHeight * 0.2976 + myPlayer.getSelectX() * tileHeight * 0.5813) - Math.round(originY);
-            //canvas.drawBitmap(scaledTileBitmaps.get("selectedTile"), x, y, null);
+            // myPlayer home tile hp and progress
             int[] homeCoords = convertIndiciesToPixels(myPlayer.getHomeCoord()[0], myPlayer.getHomeCoord()[1]);
             if (myPlayer.getUnitProgress() > 0) {
                 canvas.drawBitmap(scaledTileBitmaps.get("tileProgressFrame"), homeCoords[0], homeCoords[1], null);
@@ -316,15 +343,28 @@ public class tileView extends View {
                 canvas.drawBitmap(getResizedBitmap(scaledTileBitmaps.get("tileHPFill"), dynamicWidth, (int)tileHeight),
                         homeCoords[0], homeCoords[1], null);
             }
+
+            // myPlayer Defended tiles
+            for (tile dT : myPlayer.getDefendedTiles()) {
+                int[] defPixels = convertIndiciesToPixels(dT.get_x(), dT.get_y());
+                canvas.drawBitmap(scaledTileBitmaps.get("defendTile"), defPixels[0], defPixels[1], null);
+            }
+
+            for (tile eT : myPlayer.getExpandTiles()) {
+                int[] expPixels = convertIndiciesToPixels(eT.get_x(), eT.get_y());
+                canvas.drawBitmap(scaledTileBitmaps.get("expandTile"), expPixels[0], expPixels[1], null);
+            }
+
+            // my Player collecting tiles ?
         }
 
         // loop through player resourceInventory and print key: values
-        String text = "";
+        double textOffset = xPaintSquare.getTextSize() * 1.3;
         for (RESOURCES r : myPlayer.getResourceInventory().keySet()) {
             if (r == RESOURCES.NONE) continue;
-            text = text.concat(r.toString() + ": " + Math.floor(myPlayer.getResourceInventory().get(r)) + "\n ");
+            canvas.drawText(r.toString() + ": " + (int)Math.floor(myPlayer.getResourceInventory().get(r)), 20, (float)textOffset, xPaintSquare);
+            textOffset += xPaintSquare.getTextSize() * 1.2;
         }
-        canvas.drawText(text, 20, 50, xPaintSquare);
     }
 
     @Override
@@ -336,46 +376,98 @@ public class tileView extends View {
                 // set init value for scrolling
                 lastOffsetX = event.getX();
                 lastOffsetY = event.getY();
+                switch (touchOption) {
+                    case CAMERA:
 
-                // set init value for pinching
-                if (event.getPointerCount() == 2){
-                    float xDist = event.getX(0) - event.getX(1);
-                    float yDist = event.getY(0) - event.getY(1);
-                    double squareDist = Math.pow(xDist, 2) + Math.pow(yDist, 2);
-                    lastPinchDistance = (float)Math.sqrt(squareDist);
-                }
+                        // set init value for pinching
+                        if (event.getPointerCount() == 2){
+                            float xDist = event.getX(0) - event.getX(1);
+                            float yDist = event.getY(0) - event.getY(1);
+                            double squareDist = Math.pow(xDist, 2) + Math.pow(yDist, 2);
+                            lastPinchDistance = (float)Math.sqrt(squareDist);
+                        }
+                        break;
+                    case DEFEND_SELECT:
+                        int[] selected_D = convertPixelsToIndicies(event.getX(), event.getY());
+                        ArrayList<tile> selectedTiles = new ArrayList<tile>();
 
-                if (toggleSelect) {
-                    toggleSelect = !toggleSelect;
-                    int selectY = (int) Math.round((event.getX() - (tileWidth/2) + originX) / 0.7143 / tileWidth);
-                    int selectX = (int) Math.round( ((event.getY() - (tileHeight/2) + originY) -  (selectY * tileHeight * 0.2976)) / tileHeight / 0.5813);
-                    //myPlayer.selectTile(selectX, selectY);
+                        // select shape around picked tile?
+                        // 5 tiles around center
+                        for (int i = -1; i <= 1; i++) {
+                            for (int j = -1; j <= 1; j++) {
+                                // check validity of tiles in radius, add if valid
+                                if (i+j >= -1 && i+j <= 1
+                                        && selected_D[0] + i >= 0
+                                        && selected_D[0] + i < myGrid.SIDE_LENGTH
+                                        && selected_D[1] + j >= 0
+                                        && selected_D[1] + j < myGrid.SIDE_LENGTH
+                                        && myGrid.piece(selected_D[0] + i, selected_D[1] + j).getMovementFactor() > 0) {
+                                    selectedTiles.add(myGrid.piece(selected_D[0] + i, selected_D[1] + j));
+                                }
+                            }
+                        }
+                        myPlayer.set_defended_tiles(selectedTiles);
+                        //after select revert
+                        touchOption = touchType.CAMERA;
+                        break;
+                    case EXPAND_SELECT:
+                        int[] selected_E = convertPixelsToIndicies(event.getX(), event.getY());
+                        myPlayer.add_expand_tile(myGrid.piece(selected_E[0], selected_E[1]));
+                        //after select revert
+                        touchOption = touchType.CAMERA;
+                        break;
+                    case IMPROVE_SELECT:
+                        int[] selected_I = convertPixelsToIndicies(event.getX(), event.getY());
+
+                        //after select revert
+                        touchOption = touchType.CAMERA;
+                        break;
+                    default:
+                        // camera should be default
+                        break;
                 }
                 return true;
             case MotionEvent.ACTION_MOVE:
+                switch (touchOption) {
+                    case CAMERA:
+                        float x = event.getX();
+                        float y = event.getY();
 
-                if (event.getPointerCount() == 2) {
-                    float xDist = event.getX(0) - event.getX(1);
-                    float yDist = event.getY(0) - event.getY(1);
-                    double squareDist = Math.pow(xDist, 2) + Math.pow(yDist, 2);
-                    float trueDist = (float)Math.sqrt(squareDist);
-                    // Adjust zoomfactor and origin relatively based on trueDist
-                    //zoomFactor += (trueDist - lastPinchDistance) / 100;
-                    //updateBitmapScale();
-                    postInvalidate();
-                    // dont do other touch events
-                    return true;
+                        //alter class values directly
+                        originX += lastOffsetX - x;
+                        originY += lastOffsetY - y;
+                        // limit origin to keep map in view
+                        if (originX < (-getWidth() + tileWidth)) originX = (-getWidth() + tileWidth);
+                        int maxX = (int)(myGrid.SIDE_LENGTH * tileWidth * 0.74);
+                        if (originX > maxX) originX = maxX;
+                        if (originY < (-getHeight() + tileHeight)) originY = (-getHeight() + tileHeight);
+                        int maxY = (int)(myGrid.SIDE_LENGTH * tileHeight * 0.29 + myGrid.SIDE_LENGTH * tileHeight * 0.577);
+                        if (originY > maxY) originY = maxY;
+
+                        lastOffsetX = x;
+                        lastOffsetY = y;
+
+                        if (event.getPointerCount() == 2) {
+                            float xDist = event.getX(0) - event.getX(1);
+                            float yDist = event.getY(0) - event.getY(1);
+                            double squareDist = Math.pow(xDist, 2) + Math.pow(yDist, 2);
+                            float trueDist = (float)Math.sqrt(squareDist);
+                            // Adjust zoomfactor and origin relatively based on trueDist
+                            // zoomfactor = ratio from tile to screen width
+                            zoomFactor = (trueDist / 2) / getWidth(); //(trueDist - lastPinchDistance) / 100;
+                            if (zoomFactor < 0.05) zoomFactor = 0.05;
+                            updateBitmapScale();
+                            //postInvalidate();
+                            // dont do other touch events
+                            return true;
+                        }
+
+                        postInvalidate();
+                        break;
+                    default:
+
+                        break;
                 }
-                float x = event.getX();
-                float y = event.getY();
-
-                //alter class values
-                originX += lastOffsetX - x;
-                originY += lastOffsetY - y;
-
-                lastOffsetX = x;
-                lastOffsetY = y;
-                postInvalidate();
                 return true;
             default:
                 return true;
@@ -394,108 +486,144 @@ public class tileView extends View {
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
     }
 
+    private Bitmap determineBitmap(tile t) {
+        Bitmap tileBitmap = null;
+        if (t.getType() == TILETYPE.GRASS) {
+            tileBitmap = scaledTileBitmaps.get("grassTile");
+        } else if (t.getType() == TILETYPE.GRAIN) {
+            tileBitmap = scaledTileBitmaps.get("grainTile");
+        } else if (t.getType() == TILETYPE.WOOD) {
+            tileBitmap = scaledTileBitmaps.get("woodsLightTile");
+        } else if (t.getType() == TILETYPE.STONE) {
+            tileBitmap = scaledTileBitmaps.get("stoneTile");
+        } else if (t.getType() == TILETYPE.WATER) {
+            tileBitmap = scaledTileBitmaps.get("waterTile");
+        } else if (t.getType() == TILETYPE.TOWN) {
+            tileBitmap = scaledTileBitmaps.get("townTile");
+        } else if (t.getType() == TILETYPE.CITY) {
+            if (t.animState < 3) {
+                tileBitmap = scaledTileBitmaps.get("cityTile1");
+            } else if (t.animState < 6) {
+                tileBitmap = scaledTileBitmaps.get("cityTile2");
+            } else if (t.animState < 9) {
+                tileBitmap = scaledTileBitmaps.get("cityTile3");
+            } else {
+                tileBitmap = scaledTileBitmaps.get("cityTile4");
+            }
+            t.animState += 1;
+            if (t.animState >= 12) t.animState = 0;
+        } else if (t.getType() == TILETYPE.MOUNTAIN) {
+            tileBitmap = scaledTileBitmaps.get("mountainTile");
+        }
+        return tileBitmap;
+    }
+
     private Bitmap determineBitmap(unit u) {
         Bitmap unitBitmap = null;
-        if (u instanceof worker) {
-            if (u.status() == unit.Command.STAY) {
+        if (u.get_owner() == myPlayer) {
+            if (u instanceof worker) {
+                if (u.status() == unit.Command.STAY) {
+                    if (u.animState <= 1) {
+                        unitBitmap = scaledUnitBitmaps.get("workerStay1");
+                    } else {
+                        unitBitmap = scaledUnitBitmaps.get("workerStay2");
+                    }
+                    // 4 Stay frames
+                    u.animState += 1;
+                    if (u.animState > 3) u.animState = 0;
+                } else if (u.status() == unit.Command.WORK) {
+                    if (u.animState <= 1) {
+                        unitBitmap = scaledUnitBitmaps.get("workerWork1");
+                    } else {
+                        unitBitmap = scaledUnitBitmaps.get("workerWork2");
+                    }
+                    // 4 working frames
+                    u.animState += 1;
+                    if (u.animState > 3) u.animState = 0;
+                } else { // else covers combat, move, and any other future states
+                    // worker only has 2 move directions
+                    if (u.moveDirection <= 1) {
+                        if (u.animState == 0) {
+                            unitBitmap = scaledUnitBitmaps.get("workerWalkRight1");
+                        } else {
+                            unitBitmap = scaledUnitBitmaps.get("workerWalkRight2");
+                        }
+                    } else {
+                        if (u.animState == 0) {
+                            unitBitmap = scaledUnitBitmaps.get("workerWalkLeft1");
+                        } else {
+                            unitBitmap = scaledUnitBitmaps.get("workerWalkLeft2");
+                        }
+                    }
+                    // 2 walking frames
+                    u.animState += 1;
+                    if (u.animState > 1) u.animState = 0;
+                }
+            } else if (u instanceof troop) {
+                // troop should have combat/no combat sprites?
+                if (false && u.status() == unit.Command.STAY) {
+                    if (u.animState <= 1) {
+                        unitBitmap = scaledUnitBitmaps.get("workerStay1");
+                    } else {
+                        unitBitmap = scaledUnitBitmaps.get("workerStay2");
+                    }
+                    // 4 Stay frames
+                    u.animState += 1;
+                    if (u.animState > 3) u.animState = 0;
+                } else { // else covers combat, move, and any other future states
+                    // troop has all 4 directions
+                    switch (u.moveDirection) {
+                        case 0:
+                            if (u.animState == 0) {
+                                unitBitmap = scaledUnitBitmaps.get("troopWalkUp1");
+                            } else {
+                                unitBitmap = scaledUnitBitmaps.get("troopWalkUp2");
+                            }
+                            break;
+                        case 1:
+                            if (u.animState == 0) {
+                                unitBitmap = scaledUnitBitmaps.get("troopWalkRight1");
+                            } else {
+                                unitBitmap = scaledUnitBitmaps.get("troopWalkRight2");
+                            }
+                            break;
+                        case 2:
+                            if (u.animState == 0) {
+                                unitBitmap = scaledUnitBitmaps.get("troopWalkDown1");
+                            } else {
+                                unitBitmap = scaledUnitBitmaps.get("troopWalkDown2");
+                            }
+                            break;
+                        default: //case 3
+                            if (u.animState == 0) {
+                                unitBitmap = scaledUnitBitmaps.get("troopWalkLeft1");
+                            } else {
+                                unitBitmap = scaledUnitBitmaps.get("troopWalkLeft2");
+                            }
+                            break;
+                    }
+                    // 2 waling frames
+                    u.animState += 1;
+                    if (u.animState > 1) u.animState = 0;
+                }
+            } else if (u instanceof settler) {
                 if (u.animState <= 1) {
                     unitBitmap = scaledUnitBitmaps.get("workerStay1");
                 } else {
                     unitBitmap = scaledUnitBitmaps.get("workerStay2");
                 }
-                // 4 Stay frames
+                // 4 stay frames
                 u.animState += 1;
                 if (u.animState > 3) u.animState = 0;
-            } else if (u.status() == unit.Command.WORK) {
-                if (u.animState <= 1) {
-                    unitBitmap = scaledUnitBitmaps.get("workerWork1");
-                } else {
-                    unitBitmap = scaledUnitBitmaps.get("workerWork2");
-                }
-                // 4 working frames
-                u.animState += 1;
-                if (u.animState > 3) u.animState = 0;
-            } else { // else covers combat, move, and any other future states
-                // worker only has 2 move directions
-                if (u.moveDirection <= 1) {
-                    if (u.animState == 0) {
-                        unitBitmap = scaledUnitBitmaps.get("workerWalkRight1");
-                    } else {
-                        unitBitmap = scaledUnitBitmaps.get("workerWalkRight2");
-                    }
-                } else {
-                    if (u.animState == 0) {
-                        unitBitmap = scaledUnitBitmaps.get("workerWalkLeft1");
-                    } else {
-                        unitBitmap = scaledUnitBitmaps.get("workerWalkLeft2");
-                    }
-                }
-                // 2 walking frames
-                u.animState += 1;
-                if (u.animState > 1) u.animState = 0;
-            }
-        } else if (u instanceof troop) {
-            // troop should have combat/no combat sprites?
-            if (false && u.status() == unit.Command.STAY) {
-                if (u.animState <= 1) {
-                    unitBitmap = scaledUnitBitmaps.get("workerStay1");
-                } else {
-                    unitBitmap = scaledUnitBitmaps.get("workerStay2");
-                }
-                // 4 Stay frames
-                u.animState += 1;
-                if (u.animState > 3) u.animState = 0;
-            } else { // else covers combat, move, and any other future states
-                // troop has all 4 directions
-                switch (u.moveDirection) {
-                    case 0:
-                        if (u.animState == 0) {
-                            unitBitmap = scaledUnitBitmaps.get("troopWalkUp1");
-                        } else {
-                            unitBitmap = scaledUnitBitmaps.get("troopWalkUp2");
-                        }
-                        break;
-                    case 1:
-                        if (u.animState == 0) {
-                            unitBitmap = scaledUnitBitmaps.get("troopWalkRight1");
-                        } else {
-                            unitBitmap = scaledUnitBitmaps.get("troopWalkRight2");
-                        }
-                        break;
-                    case 2:
-                        if (u.animState == 0) {
-                            unitBitmap = scaledUnitBitmaps.get("troopWalkDown1");
-                        } else {
-                            unitBitmap = scaledUnitBitmaps.get("troopWalkDown2");
-                        }
-                        break;
-                    default: //case 3
-                        if (u.animState == 0) {
-                            unitBitmap = scaledUnitBitmaps.get("troopWalkLeft1");
-                        } else {
-                            unitBitmap = scaledUnitBitmaps.get("troopWalkLeft2");
-                        }
-                        break;
-                }
-                // 2 waling frames
-                u.animState += 1;
-                if (u.animState > 1) u.animState = 0;
-            }
-        } else if (u instanceof settler) {
-            if (u.animState <= 1) {
-                unitBitmap = scaledUnitBitmaps.get("workerStay1");
             } else {
-                unitBitmap = scaledUnitBitmaps.get("workerStay2");
+                if (u.animState == 0) {
+                    unitBitmap = scaledUnitBitmaps.get("workerStay1");
+                } else {
+                    unitBitmap = scaledUnitBitmaps.get("workerStay2");
+                }
             }
-            // 4 stay frames
-            u.animState += 1;
-            if (u.animState > 3) u.animState = 0;
         } else {
-            if (u.animState == 0) {
-                unitBitmap = scaledUnitBitmaps.get("workerStay1");
-            } else {
-                unitBitmap = scaledUnitBitmaps.get("workerStay2");
-            }
+            unitBitmap = scaledUnitBitmaps.get("enemyWalkLeft1");
         }
 
         return unitBitmap;
