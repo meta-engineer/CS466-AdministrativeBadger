@@ -35,6 +35,8 @@ public class GameActivity extends AppCompatActivity implements PopupMenu.OnMenuI
 
         customView = (tileView) findViewById(R.id.tileView);
 
+        customView.buildDrawingCache();
+
         gameController = new controller(customView);
         gameController.start();
 
@@ -43,9 +45,7 @@ public class GameActivity extends AppCompatActivity implements PopupMenu.OnMenuI
         gameTheme.start();
     }
 
-    public void popupMenuOptions(View v) {
-        Toast.makeText(getApplicationContext(), "Options menu", Toast.LENGTH_SHORT).show();
-    }
+    public void popupMenuOptions(View v) { popupMenuType(v, R.menu.options_menu); }
 
     public void popupMenuGather(View v) {
         popupMenuType(v, R.menu.gather_menu);
@@ -112,6 +112,14 @@ public class GameActivity extends AppCompatActivity implements PopupMenu.OnMenuI
             case R.id.defend_1:
                 Toast.makeText(getApplicationContext(), "Advancing troops", Toast.LENGTH_SHORT).show();
                 gameController.selectDefendArea();
+                break;
+            case R.id.options_1:
+                Toast.makeText(getApplicationContext(), "Toggle Pause", Toast.LENGTH_SHORT).show();
+                gameController.togglePause();
+                break;
+            case R.id.options_2:
+                Toast.makeText(getApplicationContext(), "TODO: Recording", Toast.LENGTH_SHORT).show();
+                // may need to merge Game Activity -> controller
                 break;
         }
         return true;

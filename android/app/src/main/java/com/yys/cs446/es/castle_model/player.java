@@ -4,6 +4,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -85,16 +86,18 @@ public class player {
 
 		ArrayList<tile> defaultTiles = new ArrayList<tile>();
 		// defended tiles are home and all 6 around it
-		defaultTiles.add(g.piece(home_x, home_y));
-		defaultTiles.add(g.piece(home_x - 1, home_y + 1));
-		defaultTiles.add(g.piece(home_x - 1, home_y));
-		defaultTiles.add(g.piece(home_x, home_y - 1));
-		defaultTiles.add(g.piece(home_x, home_y + 1));
-		defaultTiles.add(g.piece(home_x + 1, home_y));
-		defaultTiles.add(g.piece(home_x + 1, home_y - 1));
-		for (tile t : defaultTiles) {
-			if (t.getMovementFactor() == 0) {
-				//defaultTiles.remove(t);
+		// 5 tiles around center
+		for (int i = -1; i <= 1; i++) {
+			for (int j = -1; j <= 1; j++) {
+				// check validity of tiles in radius, add if valid
+				if (i+j >= -1 && i+j <= 1
+						&& home_x + i >= 0
+						&& home_x + i < g.SIDE_LENGTH
+						&& home_y + j >= 0
+						&& home_y + j < g.SIDE_LENGTH
+						&& g.piece(home_x + i, home_y + j).getMovementFactor() > 0) {
+					defaultTiles.add(g.piece(home_x + i, home_y + j));
+				}
 			}
 		}
 		set_defended_tiles(defaultTiles);
@@ -153,8 +156,10 @@ public class player {
 		}
 
 		//recover HP
-		if (heal && take_resource(RESOURCES.STONE, 0.1) && take_resource(RESOURCES.LUMBER, 0.1)) {
-	    	HP += 1;
+		if (HP < HPMax && !!heal && resourceInventory.get(RESOURCES.LUMBER) > 0.1 && resourceInventory.get(RESOURCES.STONE) > 0.1) {
+			take_resource(RESOURCES.STONE, 0.1);
+			take_resource(RESOURCES.LUMBER, 0.1);
+			HP += 1;
 		}
 
 		// comeback mechanic
@@ -238,13 +243,43 @@ public class player {
     public void getNewOrder(unit u) {
 	    // delegate depending on what type of unit is asking for an order
         if (u instanceof worker) {
-            // if there is a target resource, find path to it and give order
+            // if there is no target resource, go home
             if (targetResource == RESOURCES.NONE) {
-				u.order_move(getPath(g.piece((int)Math.round(u.get_location_x()), (int)Math.round(u.get_location_y())), g.piece(home_x, home_y)));
+            	// move to stay if already home
+				if (home_x == u.get_location_x() && home_y == u.get_location_y()) {
+					u.order_stay();
+				} else {
+					u.order_move(getPath(g.piece((int) Math.round(u.get_location_x()), (int) Math.round(u.get_location_y())), g.piece(home_x, home_y)));
+				}
 			} else {
-                for (tile t : adjacent) {
-                	// if tile is desired resource AND its not already being collected
+				// if there is a target resource, find path to it and give order
+            	// get tile based on closest of type that is not being harvested?
+				ArrayList<tile> availableTiles = new ArrayList<>( adjacent );
+				// sort by ...? tiles closest to player.homeTile
+				// Collections.shuffle(availableTiles);
+				Collections.sort(availableTiles, new Comparator<tile>() {
+					@Override
+					public int compare(tile lt, tile rt) {
+						// comparator is defined inside player, so has access to players class variables?
+						double lt_dist_square = (home_x - lt.get_x())^2 + (home_y - lt.get_y())^2;
+						double rt_dist_square = (home_x - rt.get_x())^2 + (home_y - rt.get_y())^2;
+						return Double.compare(lt_dist_square, rt_dist_square);
+					}
+				});
+                for (tile t : availableTiles) {
+                	// if tile is desired resource
                     if (t.getResource() == targetResource) {
+                    	// AND its not already being collected
+						try {
+							for (unit ut : t.get_units()) {
+								if (ut instanceof worker && ut.status() == unit.Command.WORK) {
+									// try next tile
+									throw new Exception("Tile is busy");
+								}
+							}
+						} catch (Exception e) {
+							continue;
+						}
                         u.order_move(getPath(g.piece((int)Math.round(u.get_location_x()), (int)Math.round(u.get_location_y())), t));
                         return;
                     }
@@ -446,8 +481,9 @@ public class player {
 	public void takeDamage(double dmg) {
 		HP -= dmg;
 		if (HP <= 0) {
-			// something bad happens
+			HP = 0;
 		}
+		Log.d("DEBUG", "takeDamage: " + Double.toString(HP));
 	}
 
 	public void add_expand_tile(tile t) {

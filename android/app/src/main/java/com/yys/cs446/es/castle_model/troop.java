@@ -25,9 +25,18 @@ public class troop extends unit{
 					ArrayList<unit> unitList = owner.get_grid().piece((int)location_x, (int)location_y).get_units();
 					for (unit u : unitList) {
 						if (u.owner != owner) {
+							location_x = (int)Math.round(location_x);
+							location_y = (int)Math.round(location_y);
 							command = Command.COMBAT;
 							break;
 						}
+					}
+					tile myTile = owner.get_grid().piece((int)Math.round(location_x), (int)Math.round(location_y));
+					if (myTile.getType() == tile.TILETYPE.CITY && myTile.get_owner() != owner) {
+						location_x = (int)Math.round(location_x);
+						location_y = (int)Math.round(location_y);
+						command = Command.COMBAT;
+						break;
 					}
 				}
 				// else
@@ -39,16 +48,23 @@ public class troop extends unit{
 				// super does movement work
                 //check for enemies on this tile before leaving
                 {
-                    ArrayList<unit> unitList = owner.get_grid().piece((int)location_x, (int)location_y).get_units();
+                    ArrayList<unit> unitList = owner.get_grid().piece((int)Math.round(location_x), (int)Math.round(location_y)).get_units();
                     for (unit u : unitList) {
                         if (u.owner != owner) {
                             //reset to tile and attack
-                            location_x = path.get(0).get_x();
-                            location_y = path.get(0).get_y();
+                            location_x = (int)Math.round(location_x);
+                            location_y = (int)Math.round(location_y);
                             command = Command.COMBAT;
                             break;
                         }
                     }
+					tile myTile = owner.get_grid().piece((int)Math.round(location_x), (int)Math.round(location_y));
+                    if (myTile.getType() == tile.TILETYPE.CITY && myTile.get_owner() != owner) {
+						location_x = (int)Math.round(location_x);
+						location_y = (int)Math.round(location_y);
+						command = Command.COMBAT;
+						break;
+					}
                 }
 				break;
 			case WORK:
@@ -63,16 +79,6 @@ public class troop extends unit{
 				ArrayList<unit> unitList = owner.get_grid().piece(effectiveX, effectiveY).get_units();
 
 				// FIRST check for enemy troops
-				for (unit u : unitList) {
-					if (u.owner != owner && u instanceof troop) {
-						attack(u);
-						// can only do attack on one unit
-						return;
-					}
-				}
-
-				// SECOND check for enemy capturable units
-				// if no capurable units (or troops) switch to STAY
 				for (unit u : unitList) {
 					if (u.owner != owner) {
 						attack(u);

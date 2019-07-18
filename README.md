@@ -4,15 +4,11 @@ CS466 Android project
 #TODO
 	Engine
 better pathfinding?
-better worker distribution/behaviour?
-Test combat (simple static opponents)
-
+send enemy waves (AI Class?)
+better troop behaviour? (troops should path to defended area, not just their tile)
 
 	View
 instructions?
-settler animations
-enemy animations
-victory/defeat notification?
-defend select clipping bug?
+better fog of war?
 
 PIVOT: screen capture???

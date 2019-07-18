@@ -24,6 +24,9 @@ public class unit {
 	protected float AP;
 	protected double foodUpkeep;
 
+	protected double progress;
+	protected double progressMax;
+
 	// used my view objects to track animations
 	// no dependencies on it in unit object so coupling isn't horrendous.
 	public int animState = 0;
@@ -42,6 +45,8 @@ public class unit {
 		command = Command.STAY;
 
 		foodUpkeep = 0.02;
+		progress = 0;
+		progressMax = 100;
 
 		//init empty path
 		path = new ArrayList<tile>();
@@ -49,7 +54,7 @@ public class unit {
 
 	// to be overridden
 	public double getProgress() {
-		return 0;
+		return progress/progressMax;
 	}
 
 	// progress self (finite state machine)
