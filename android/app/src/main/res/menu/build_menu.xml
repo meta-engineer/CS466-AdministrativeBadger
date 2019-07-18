@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/build_1"
+        android:title="Produce worker (food)"/>
+    <item android:id="@+id/build_2"
+        android:title="Produce troop (food + stone)"/>
+    <item android:id="@+id/build_3"
+        android:title="Produce settler (food + lumber)"/>
+</menu>

@@ -1,5 +1,9 @@
 <resources>
     <string name="app_name">ES</string>
-    <string name="play_button">Create Game</string>
+    <string name="play_button">Create New World Now!</string>
     <string name="gameActivity_name">Game Activity</string>
+    <string name="titleText">Slaves to Armok: God of Blood</string>
+    <string name="subTitleText">Chapter III: Elven Stronghold</string>
+    <string name="credits">Designed and programmed by Yongyuan Bai, Stephen Dueck, and Yiwen Chen</string>
+    <string name="icon_hammer">uhhhh</string>
 </resources>

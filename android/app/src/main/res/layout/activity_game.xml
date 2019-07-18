@@ -4,15 +4,76 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/colorBackdrop"
     tools:context=".GameActivity">
 
     <com.yys.cs446.es.views.tileView
         android:id="@+id/tileView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginEnd="0dp"
-        android:layout_marginRight="0dp"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <ImageButton
+        android:id="@+id/imageButton"
+        style="@android:style/Widget.Holo.Light.ImageButton"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/toolbarHeight"
+        android:layout_marginStart="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginBottom="8dp"
+        android:onClick="popupMenuGather"
+        android:scaleType="fitCenter"
+        android:src="@drawable/icon_collecting"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/imageButton2"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <ImageButton
+        android:id="@+id/imageButton2"
+        style="@android:style/Widget.Holo.Light.ImageButton"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/toolbarHeight"
+        android:layout_marginBottom="8dp"
+        android:onClick="popupMenuBuild"
+        android:src="@drawable/icon_building"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/imageButton3"
+        app:layout_constraintStart_toEndOf="@id/imageButton" />
+
+    <ImageButton
+        android:id="@+id/imageButton3"
+        style="@android:style/Widget.Holo.Light.ImageButton"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/toolbarHeight"
+        android:layout_marginBottom="8dp"
+        android:onClick="popupMenuExpand"
+        android:src="@drawable/icon_expanding"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/imageButton4"
+        app:layout_constraintStart_toEndOf="@id/imageButton2" />
+
+    <ImageButton
+        android:id="@+id/imageButton4"
+        style="@android:style/Widget.Holo.Light.ImageButton"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/toolbarHeight"
+        android:layout_marginRight="8dp"
+        android:layout_marginBottom="8dp"
+        android:onClick="popupMenuDefend"
+        android:src="@drawable/icon_defending"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        tools:layout_editor_absoluteY="0dp" />
+        app:layout_constraintStart_toEndOf="@id/imageButton3" />
+
+    <ImageButton
+        android:id="@+id/imageButton5"
+        style="@android:style/Widget.Holo.Light.ImageButton"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:onClick="popupMenuOptions"
+        android:scaleType="centerCrop"
+        android:src="@android:drawable/ic_menu_help"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </android.support.constraint.ConstraintLayout>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/expand_1"
+        android:title="Select tile to expand to"/>
+    <item android:id="@+id/expand_2"
+        android:title="Toggle stronghold heal (stone + lumber)"/>
+</menu>

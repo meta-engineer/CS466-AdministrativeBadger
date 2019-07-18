@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/gather_1"
+        android:title="Gather lumber"/>
+    <item android:id="@+id/gather_2"
+        android:title="Gather food" />
+    <item android:id="@+id/gather_3"
+        android:title="Gather stone" />
+    <item android:id="@+id/gather_4"
+        android:title="Retreat" />
+</menu>
