@@ -154,4 +154,8 @@ public class controller {
             }
         }
     }
+
+    public GAMESTATE getState() {
+        return state;
+    }
 }

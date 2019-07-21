@@ -4,4 +4,6 @@
         android:title="Toggle pause"/>
     <item android:id="@+id/options_2"
         android:title="Toggle Recording" />
+    <item android:id="@+id/options_3"
+        android:title="Share video" />
 </menu>
