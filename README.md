@@ -1,14 +1,16 @@
 # CS466-AdministrativeBadger
 CS466 Android project
 
-#TODO
-	Engine
-better pathfinding?
-send enemy waves (AI Class?)
-better troop behaviour? (troops should path to defended area, not just their tile)
+PIVOT: screen capture
+Recording should work now.
 
-	View
-instructions?
-better fog of war?
+Files: 
+ScreenRecorder.java
+MainActivity.java
 
-PIVOT: screen capture???
+Modified: 
+AndroidManifest.xml
+
+
+Added
+app->res->xmp->provider_paths.xml
