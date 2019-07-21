@@ -25,15 +25,6 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.yys.cs446.es.MainActivity" />
         </activity>
-        <provider
-            android:authorities="${applicationId}.fileprovider"
-            android:name=".GenericFileProvider"
-            android:exported="false"
-            android:grantUriPermissions="true" >
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/provider_paths" />
-        </provider>
     </application>
 
 </manifest>

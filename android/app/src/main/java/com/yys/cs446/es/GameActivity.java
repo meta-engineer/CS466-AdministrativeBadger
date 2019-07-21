@@ -38,16 +38,6 @@ import java.lang.reflect.Type;
 
 public class GameActivity extends AppCompatActivity implements PopupMenu.OnMenuItemClickListener {
 
-    private static final int REQUEST_CODE = 1;
-    private static final int REQUEST_EXTERNAL_STORAGE = 1;
-    private static String[] PERMISSIONS_STORAGE = {
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE
-    };
-    private MediaProjectionManager mMediaProjectionManager;
-    private ScreenRecorder mRecorder;
-    private String lastRecordedVideoPath;
-
     private tileView customView;
     private controller gameController;
     private MediaPlayer gameTheme;
@@ -58,11 +48,6 @@ public class GameActivity extends AppCompatActivity implements PopupMenu.OnMenuI
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
-
-        lastRecordedVideoPath = "";
-        // noinspection ResourceType
-        mMediaProjectionManager = (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
-        verifyStoragePermissions(this);
 
         customView = (tileView) findViewById(R.id.tileView);
 
@@ -174,85 +159,12 @@ public class GameActivity extends AppCompatActivity implements PopupMenu.OnMenuI
                 gameController.togglePause();
                 break;
             case R.id.options_2:
-                // toggle options text on click
-                if (mRecorder != null) {
-                    Toast.makeText(getApplicationContext(), "Stopped recording", Toast.LENGTH_SHORT).show();
-                    recordState = false;
-                    mRecorder.quit();
-                    lastRecordedVideoPath = mRecorder.getmDstPath();
-                    mRecorder = null;
-                } else {
-                    Toast.makeText(this, "Screen recorder is running...", Toast.LENGTH_SHORT).show();
-                    recordState = true;
-                    Intent captureIntent = mMediaProjectionManager.createScreenCaptureIntent();
-                    startActivityForResult(captureIntent, REQUEST_CODE);
-                }
+
                 break;
             case R.id.options_3:
-                if (!lastRecordedVideoPath.isEmpty()) {
-                    Toast.makeText(getApplicationContext(), "Sharing video...", Toast.LENGTH_SHORT).show();
-                    // if game is not over/paused pause while sharing
-                    if (gameController.getState() == controller.GAMESTATE.RUNNING) {
-                        gameController.togglePause();
-                    }
-                    shareVideo();
-                } else {
-                    Toast.makeText(getApplicationContext(), "No completed video to share", Toast.LENGTH_SHORT).show();
-                }
+
                 break;
         }
         return true;
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        MediaProjection mediaProjection = mMediaProjectionManager.getMediaProjection(resultCode, data);
-        if (mediaProjection == null) {
-            Log.e("@@", "media projection is null");
-            return;
-        }
-        // video size
-        final int width = 1280;
-        final int height = 720;
-        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                "record-" + width + "x" + height + "-" + System.currentTimeMillis() + ".mp4");
-        final int bitrate = 6000000;
-        mRecorder = new ScreenRecorder(width, height, bitrate, 1, mediaProjection, file.getAbsolutePath());
-        mRecorder.start();
-    }
-
-    public static void verifyStoragePermissions(Activity activity) {
-        // Check if we have write permission
-        int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-
-        if (permission != PackageManager.PERMISSION_GRANTED) {
-            // We don't have permission so prompt the user
-            ActivityCompat.requestPermissions(
-                    activity,
-                    PERMISSIONS_STORAGE,
-                    REQUEST_EXTERNAL_STORAGE
-            );
-        }
-    }
-
-    private void shareVideo() {
-        Intent shareIntent = new Intent(Intent.ACTION_SEND);
-        shareIntent.setType("video/*");
-        File videoFileToShare = new File(lastRecordedVideoPath);
-        Uri uri = GenericFileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID + ".fileprovider", videoFileToShare);
-        shareIntent.putExtra( android.content.Intent.EXTRA_SUBJECT, "Share to");
-        shareIntent.putExtra( android.content.Intent.EXTRA_TITLE, "Share to");
-        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
-        startActivity(Intent.createChooser(shareIntent, "Share to"));
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (mRecorder != null) {
-            mRecorder.quit();
-            mRecorder = null;
-        }
     }
 }
