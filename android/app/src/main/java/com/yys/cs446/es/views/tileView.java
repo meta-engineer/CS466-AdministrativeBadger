@@ -262,7 +262,7 @@ public class tileView extends View {
     // requires tileHeight/tileWidth to be set before calling
     public void setCamera(int xIndex, int yIndex) {
         int[] newOrigin = convertIndiciesToPixels(xIndex, yIndex);
-        originX = newOrigin[0];
+        originX = newOrigin[0] - tileWidth;
         originY = newOrigin[1];
     }
 

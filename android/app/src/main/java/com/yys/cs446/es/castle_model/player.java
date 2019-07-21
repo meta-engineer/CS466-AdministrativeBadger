@@ -128,7 +128,7 @@ public class player {
 					unitProgress += 1;
 				}
 			} else if (producingUnitType == unit.TYPE.TROOP) {
-				if (resourceInventory.get(RESOURCES.FOOD) > 5 && resourceInventory.get(RESOURCES.STONE) > 0) {
+				if (resourceInventory.get(RESOURCES.FOOD) > 5 && resourceInventory.get(RESOURCES.STONE) > 1) {
 					// reduce food by 1 and increase progress (20 food to produce, 20 stone)
 					resourceInventory.put(RESOURCES.FOOD, resourceInventory.get(RESOURCES.FOOD) - 0.2);
 					resourceInventory.put(RESOURCES.STONE, resourceInventory.get(RESOURCES.STONE) - 0.2);
@@ -137,7 +137,7 @@ public class player {
 					// if not enough resources: send notification message?
 				}
 			} else if (producingUnitType == unit.TYPE.SETTLER) {
-				if (resourceInventory.get(RESOURCES.FOOD) > 5 && resourceInventory.get(RESOURCES.LUMBER) > 0) {
+				if (resourceInventory.get(RESOURCES.FOOD) > 5 && resourceInventory.get(RESOURCES.LUMBER) > 1) {
 					// reduce food by 1 and increase progress (20 food to produce, 20 stone)
 					resourceInventory.put(RESOURCES.FOOD, resourceInventory.get(RESOURCES.FOOD) - 0.2);
 					resourceInventory.put(RESOURCES.LUMBER, resourceInventory.get(RESOURCES.LUMBER) - 0.2);

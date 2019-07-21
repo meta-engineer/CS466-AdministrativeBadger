@@ -185,9 +185,7 @@ public class unit {
 	}
 
 	public void set_owner(player p) {
-		this.get_owner().destroy_Unit(this);
-		p.add_Unit(this);
-		owner = p;
+		this.owner = p;
 		order_stay();
 	}
 

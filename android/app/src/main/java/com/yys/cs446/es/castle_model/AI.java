@@ -24,7 +24,7 @@ public class AI extends player {
 		super.act();
 
 		//every once and a while send enemy to opp
-		if (elapsedTime == waveTime/2) {
+		if (elapsedTime == waveTime/3 || elapsedTime == waveTime*2/3) {
 			sendWave();
 		}
 		// build more home defenses

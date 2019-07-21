@@ -72,6 +72,14 @@ public class troop extends unit{
 
 				// FIRST check for enemy troops
 				for (unit u : unitList) {
+					if (u.owner != owner && u instanceof troop) {
+						attack(u);
+						// can only do attack on one unit
+						return;
+					}
+				}
+				// then check for other unit types
+				for (unit u : unitList) {
 					if (u.owner != owner) {
 						attack(u);
 						// can only do attack on one unit

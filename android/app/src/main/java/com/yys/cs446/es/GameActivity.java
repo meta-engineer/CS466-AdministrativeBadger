@@ -2,14 +2,19 @@ package com.yys.cs446.es;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Typeface;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -68,7 +73,21 @@ public class GameActivity extends AppCompatActivity implements PopupMenu.OnMenuI
 
         gameTheme = MediaPlayer.create(GameActivity.this, R.raw.es_game_theme);
         gameTheme.setLooping(true);
+        //gameTheme.start();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
         gameTheme.start();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        gameTheme.pause();
     }
 
     public void popupMenuOptions(View v) {

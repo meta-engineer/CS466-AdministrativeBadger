@@ -30,6 +30,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
+        titleTheme.seekTo(0);
         titleTheme.start();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        titleTheme.pause();
     }
 }
