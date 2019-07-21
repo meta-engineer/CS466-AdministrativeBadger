@@ -44,7 +44,7 @@ public class unit {
 		owner = P;
 		command = Command.STAY;
 
-		foodUpkeep = 0.02;
+		foodUpkeep = 0.01;
 		progress = 0;
 		progressMax = 100;
 
@@ -64,16 +64,15 @@ public class unit {
 		// all units need food to be alive
 		if (!owner.take_resource(player.RESOURCES.FOOD, foodUpkeep)) {
 			owner.destroy_Unit(this);
+			// cannabalism?
+			owner.add_resource(player.RESOURCES.FOOD, 5);
 		}
+		//if not starved, regen some
+		if (HP < HPMax) HP += foodUpkeep * 5;
 
 		switch (command) {
 			case STAY:
 				// may want regeneration methods to handle specific classes
-				if (HP < HPMax && (owner.get_grid().piece((int)location_x, (int)location_y).getType() == tile.TILETYPE.CITY || owner.get_grid().piece((int)location_x, (int)location_y).getType() == tile.TILETYPE.TOWN)) {
-					HP += 1;
-					if (HP > HPMax) HP = HPMax; //floats might overflow
-				}
-				//handled by subclass
 				break;
 			case MOVE:
 				// check if there is path to follow (path.get(0) is always current tile) and path does not lead to bad tile
@@ -109,7 +108,7 @@ public class unit {
 						path.get(0).remove_unit(this);
 						path.get(1).add_unit(this);
 						owner.setVisible2TileRadius(path.get(1).get_x(), path.get(1).get_y());
-						//set on tile locations (integers) to prevent rouding errors in movement
+						//set on tile locations (integers) to prevent rounding errors in movement
 						location_x = path.get(1).get_x();
 						location_y = path.get(1).get_y();
 						//keep moving toward centre of tile, once within range of tile center then advance path
@@ -140,6 +139,7 @@ public class unit {
 		// if attack would kill unit check for capturing
 		if (AP >= u.getHP() && !(u instanceof troop)) {
 			u.set_owner(owner);
+			owner.getNewOrder(u);
 		} else {
 			u.takeDamage(AP);
 		}
@@ -147,6 +147,8 @@ public class unit {
 
 	public void attack(player p) {
 		p.takeDamage(AP);
+		// attacking a stronghold returns damage?
+		// implies need equivalent hp pool of units to destroy?
 	}
 
 	public float getHPMax() {
@@ -158,7 +160,7 @@ public class unit {
 	}
 
 	public void takeDamage(float dmg) {
-		HP -= dmg;
+		this.HP = this.HP - dmg;
 		if (HP <= 0) owner.destroy_Unit(this);
 	}
 

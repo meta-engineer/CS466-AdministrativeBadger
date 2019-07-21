@@ -3,12 +3,11 @@ CS466 Android project
 
 #TODO
 	Engine
-better pathfinding?
-send enemy waves (AI Class?)
-better troop behaviour? (troops should path to defended area, not just their tile)
+DONE?
 
 	View
-instructions?
-better fog of war?
-
+instructions page?
 PIVOT: screen capture???
+
+60 second Video
+demo paper : https://cs.uwaterloo.ca/~m2nagapp/courses/CS446/1195/slides/Deliverable6.pdf
