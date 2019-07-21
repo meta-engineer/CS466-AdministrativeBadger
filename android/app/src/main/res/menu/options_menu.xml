@@ -3,7 +3,7 @@
     <item android:id="@+id/options_1"
         android:title="Toggle pause"/>
     <item android:id="@+id/options_2"
-        android:title="Toggle Recording" />
+        android:title="Recording" />
     <item android:id="@+id/options_3"
         android:title="Share video" />
 </menu>

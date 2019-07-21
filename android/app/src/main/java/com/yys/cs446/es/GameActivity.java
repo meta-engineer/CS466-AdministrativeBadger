@@ -47,6 +47,8 @@ public class GameActivity extends AppCompatActivity implements PopupMenu.OnMenuI
     private controller gameController;
     private MediaPlayer gameTheme;
 
+    private boolean recordState;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,7 +71,18 @@ public class GameActivity extends AppCompatActivity implements PopupMenu.OnMenuI
         gameTheme.start();
     }
 
-    public void popupMenuOptions(View v) { popupMenuType(v, R.menu.options_menu); }
+    public void popupMenuOptions(View v) {
+        PopupMenu pu = new PopupMenu(this, v);
+        pu.setOnMenuItemClickListener(this);
+        pu.inflate(R.menu.options_menu);
+        // must edit menu instance just before showing
+        if (recordState) {
+            pu.getMenu().findItem(R.id.options_2).setTitle("Stop current recording");
+        } else {
+            pu.getMenu().findItem(R.id.options_2).setTitle("Start new recording");
+        }
+        pu.show();
+    }
 
     public void popupMenuGather(View v) {
         popupMenuType(v, R.menu.gather_menu);
@@ -145,11 +158,13 @@ public class GameActivity extends AppCompatActivity implements PopupMenu.OnMenuI
                 // toggle options text on click
                 if (mRecorder != null) {
                     Toast.makeText(getApplicationContext(), "Stopped recording", Toast.LENGTH_SHORT).show();
+                    recordState = false;
                     mRecorder.quit();
                     lastRecordedVideoPath = mRecorder.getmDstPath();
                     mRecorder = null;
                 } else {
                     Toast.makeText(this, "Screen recorder is running...", Toast.LENGTH_SHORT).show();
+                    recordState = true;
                     Intent captureIntent = mMediaProjectionManager.createScreenCaptureIntent();
                     startActivityForResult(captureIntent, REQUEST_CODE);
                 }
