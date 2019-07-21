@@ -220,6 +220,10 @@ public class tileView extends View {
     public int[] convertPixelsToIndicies(double xPixel, double yPixel) {
         int x = (int) Math.round((xPixel - (tileWidth/2) + originX) / 0.74 / tileWidth);
         int y = (int) Math.round(((yPixel - (tileHeight/2) + originY) - (x * tileHeight * 0.29)) / tileHeight / 0.577);
+        if (x < 0) x = 0;
+        if (x >= myGrid.SIDE_LENGTH) x = myGrid.SIDE_LENGTH - 1;
+        if (y < 0) y = 0;
+        if (y >= myGrid.SIDE_LENGTH) y = myGrid.SIDE_LENGTH - 1;
         int[] tup = {y,x};
         return tup;
     }
@@ -319,56 +323,66 @@ public class tileView extends View {
 
         //draw units, animation frames stored in unit objects
         for (tile[] ts : myGrid.getTiles()) {
-            for (tile t : ts) {
-                double thisTileUnitCount = 0;
-                for (unit u : t.get_units()) {
-                    // select correct bitmap to draw
-                    // select based on unit type/movement direction?/animation State?
-                    // units could store correct bitmap but would couple model and view
-                    Bitmap unitBitmap = determineBitmap(u);
+            // tile null before update?
+            try {
+                for (tile t : ts) {
+                    // dont draw units on invisible tiles
+                    if (!myPlayer.isTileVisible(t.get_x(), t.get_y())) continue;
+                    double thisTileUnitCount = 0;
+                    for (unit u : t.get_units()) {
+                        // select correct bitmap to draw
+                        // select based on unit type/movement direction?/animation State?
+                        // units could store correct bitmap but would couple model and view
+                        Bitmap unitBitmap = determineBitmap(u);
 
-                    // draw selected bitmap
-                    int[] pix = convertIndiciesToPixels(u.get_location_x(), u.get_location_y());
-                    int[] unitPix = pix.clone();
+                        // draw selected bitmap
+                        int[] pix = convertIndiciesToPixels(u.get_location_x(), u.get_location_y());
+                        int[] unitPix = pix.clone();
 
-                    // offset based on number of units on this tile t, proportion of tileWidth?
-                    // 1 -> 0 shift, 2 -> top/bottom, 3 -> ...
-                    if (t.get_units().size() > 1 && u.status() != unit.Command.MOVE) { // moving units already have floating point location
-                        // move units radially around
-                        unitPix[0] += (int)((tileWidth / 10.0) * Math.cos(Math.toRadians(360.0 * (thisTileUnitCount / t.get_units().size()))));
-                        unitPix[1] += (int)((tileWidth / 10.0) * Math.sin(Math.toRadians(360.0 * (thisTileUnitCount / t.get_units().size()))));
-                        thisTileUnitCount += 1;
-                    }
-                    unitPix[0] += tileWidth / 2 - unitBitmap.getWidth() / 2;
-                    unitPix[1] += tileHeight * 2 / 3 - unitBitmap.getHeight() /2;
+                        // set to centre
+                        unitPix[0] += tileWidth / 2 - unitBitmap.getWidth() / 2;
+                        unitPix[1] += tileHeight * 7 / 12 - unitBitmap.getHeight() / 2;
 
-                    canvas.drawBitmap(unitBitmap,
-                            unitPix[0],
-                            unitPix[1],
-                            null);
-                    if (u.getHP() < u.getHPMax()) {
-                        canvas.drawBitmap(scaledUnitBitmaps.get("unitHPFrame"),
+                        // offset based on number of units on this tile t, proportion of tileWidth?
+                        // 1 -> 0 shift, 2 -> top/bottom, 3 -> ...
+                        if (t.get_units().size() > 1 && u.status() != unit.Command.MOVE) { // moving units already have floating point location
+                            // move units radially around
+                            unitPix[0] += (int) ((tileWidth / 8.0) * Math.sin(Math.toRadians(360.0 * (thisTileUnitCount / t.get_units().size()))));
+                            unitPix[1] += (int) ((tileWidth / -8.0) * Math.cos(Math.toRadians(360.0 * (thisTileUnitCount / t.get_units().size()))));
+                            thisTileUnitCount += 1;
+                        }
+
+                        canvas.drawBitmap(unitBitmap,
                                 unitPix[0],
                                 unitPix[1],
                                 null);
-                        int dynamicWidth = (int) (scaledUnitBitmaps.get("unitHPFrame").getWidth() * (u.getHP() / u.getHPMax()));
-                        if (dynamicWidth <= 0) dynamicWidth = 1;
-                        canvas.drawBitmap(getResizedBitmap(scaledUnitBitmaps.get("unitHPFill"), dynamicWidth, scaledUnitBitmaps.get("unitHPFrame").getHeight()),
-                                unitPix[0],
-                                unitPix[1],
-                                null);
-                    }
+                        if (u.getHP() < u.getHPMax()) {
+                            canvas.drawBitmap(scaledUnitBitmaps.get("unitHPFrame"),
+                                    unitPix[0],
+                                    unitPix[1],
+                                    null);
+                            int dynamicWidth = (int) (scaledUnitBitmaps.get("unitHPFrame").getWidth() * (u.getHP() / u.getHPMax()));
+                            if (dynamicWidth <= 0) dynamicWidth = 1;
+                            canvas.drawBitmap(getResizedBitmap(scaledUnitBitmaps.get("unitHPFill"), dynamicWidth, scaledUnitBitmaps.get("unitHPFrame").getHeight()),
+                                    unitPix[0],
+                                    unitPix[1],
+                                    null);
+                        }
 
-                    if (u instanceof settler && u.getProgress() > 0) {
-                        canvas.drawBitmap(scaledTileBitmaps.get("tileProgressFrame"), pix[0], pix[1] + tileHeight / 3, null);
-                        int dynamicWidth = (int) (tileWidth * u.getProgress());
-                        if (dynamicWidth <= 0) dynamicWidth = 1;
-                        canvas.drawBitmap(getResizedBitmap(scaledTileBitmaps.get("tileProgressFill"), dynamicWidth, (int) tileHeight), pix[0], pix[1] + tileHeight / 3, null);
-                    }
-                    if (u instanceof worker && u.status() == unit.Command.WORK) {
-                        canvas.drawBitmap(scaledTileBitmaps.get("collectTile"), pix[0], pix[1], null);
+                        if (u instanceof settler && u.getProgress() > 0) {
+                            canvas.drawBitmap(scaledTileBitmaps.get("tileProgressFrame"), pix[0], pix[1] + tileHeight / 3, null);
+                            int dynamicWidth = (int) (tileWidth * u.getProgress());
+                            if (dynamicWidth <= 0) dynamicWidth = 1;
+                            canvas.drawBitmap(getResizedBitmap(scaledTileBitmaps.get("tileProgressFill"), dynamicWidth, (int) tileHeight), pix[0], pix[1] + tileHeight / 3, null);
+                        }
+                        if (u instanceof worker && u.status() == unit.Command.WORK) {
+                            canvas.drawBitmap(scaledTileBitmaps.get("collectTile"), pix[0], pix[1], null);
+                        }
                     }
                 }
+            } catch (Exception e) {
+                // skip drawing this tile for this frame
+                Log.d("DEBUG", "onDraw: " + e.getMessage());
             }
         }
 
@@ -395,8 +409,6 @@ public class tileView extends View {
                 // can resize bitmap on the fly for dynamic size?
                 int dynamicWidth = (int)(tileWidth * (myPlayer.getUnitProgress() / myPlayer.getUnitProgressMax()));
                 if (dynamicWidth <= 0) dynamicWidth = 1;
-                //Log.d("Divide by zero debug", "onDraw: " + Integer.toString(dynamicWidth));
-                //Log.d("unchained ratio debug", "onDraw: " + Float.toString(tileHeight));
                 canvas.drawBitmap(getResizedBitmap(scaledTileBitmaps.get("tileProgressFill"), dynamicWidth, (int)tileHeight),
                         homeCoords[0], homeCoords[1], null);
             }
@@ -680,44 +692,37 @@ public class tileView extends View {
                 }
             } else if (u instanceof troop) {
                 // troop should have combat/no combat sprites?
-                if (u.status() == unit.Command.STAY) {
-                    if (u.animState <= 1) {
-                        unitBitmap = scaledUnitBitmaps.get("workerStay1");
-                    } else {
-                        unitBitmap = scaledUnitBitmaps.get("workerStay2");
-                    }
-                } else { // else covers combat, move, and any other future states
-                    // troop has all 4 directions
-                    switch (u.moveDirection) {
-                        case 0:
-                            if (u.animState == 0) {
-                                unitBitmap = scaledUnitBitmaps.get("troopWalkUp1");
-                            } else {
-                                unitBitmap = scaledUnitBitmaps.get("troopWalkUp2");
-                            }
-                            break;
-                        case 1:
-                            if (u.animState == 0) {
-                                unitBitmap = scaledUnitBitmaps.get("troopWalkRight1");
-                            } else {
-                                unitBitmap = scaledUnitBitmaps.get("troopWalkRight2");
-                            }
-                            break;
-                        case 2:
-                            if (u.animState == 0) {
-                                unitBitmap = scaledUnitBitmaps.get("troopWalkDown1");
-                            } else {
-                                unitBitmap = scaledUnitBitmaps.get("troopWalkDown2");
-                            }
-                            break;
-                        default: //case 3
-                            if (u.animState == 0) {
-                                unitBitmap = scaledUnitBitmaps.get("troopWalkLeft1");
-                            } else {
-                                unitBitmap = scaledUnitBitmaps.get("troopWalkLeft2");
-                            }
-                            break;
-                    }
+                // covers combat, move, and any other future states
+                // troop has all 4 directions
+                switch (u.moveDirection) {
+                    case 0:
+                        if (u.animState == 0) {
+                            unitBitmap = scaledUnitBitmaps.get("troopWalkUp1");
+                        } else {
+                            unitBitmap = scaledUnitBitmaps.get("troopWalkUp2");
+                        }
+                        break;
+                    case 1:
+                        if (u.animState == 0) {
+                            unitBitmap = scaledUnitBitmaps.get("troopWalkRight1");
+                        } else {
+                            unitBitmap = scaledUnitBitmaps.get("troopWalkRight2");
+                        }
+                        break;
+                    case 2:
+                        if (u.animState == 0) {
+                            unitBitmap = scaledUnitBitmaps.get("troopWalkDown1");
+                        } else {
+                            unitBitmap = scaledUnitBitmaps.get("troopWalkDown2");
+                        }
+                        break;
+                    default: //case 3
+                        if (u.animState == 0) {
+                            unitBitmap = scaledUnitBitmaps.get("troopWalkLeft1");
+                        } else {
+                            unitBitmap = scaledUnitBitmaps.get("troopWalkLeft2");
+                        }
+                        break;
                 }
             } else if (u instanceof settler) {
                 switch (u.moveDirection) {

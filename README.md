@@ -1,16 +1,13 @@
 # CS466-AdministrativeBadger
 CS466 Android project
 
-PIVOT: screen capture
-Recording should work now.
+#TODO
+	Engine
+DONE?
 
-Files: 
-ScreenRecorder.java
-MainActivity.java
+	View
+instructions page?
+PIVOT: screen capture???
 
-Modified: 
-AndroidManifest.xml
-
-
-Added
-app->res->xmp->provider_paths.xml
+60 second Video
+demo paper : https://cs.uwaterloo.ca/~m2nagapp/courses/CS446/1195/slides/Deliverable6.pdf

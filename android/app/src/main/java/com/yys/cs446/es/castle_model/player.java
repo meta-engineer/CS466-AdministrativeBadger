@@ -4,6 +4,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -23,18 +24,16 @@ public class player {
 	}
 
 	// should be a collection of "home" tiles for each settlement?
-	private int home_x, home_y;
-	private float HPMax;
-	private float HP;
-	private boolean heal;
-	private grid g;
+	protected int home_x, home_y;
+	protected float HPMax;
+	protected float HP;
+	protected boolean heal;
+	protected grid g;
 	//SIDE LENGTH is protected can this be restructured?
 	//private double priority[][] = new double[grid.SIDE_LENGTH][grid.SIDE_LENGTH];
 
-	// for debugging purpose, the following 6 arrays are set to public, please
-	// change them to private after debugging.
-	public ArrayList<tile> owned;
-	public ArrayList<tile> adjacent;
+	protected ArrayList<tile> owned;
+	protected ArrayList<tile> adjacent;
 	public ArrayList<tile> visible;
 
 	// the point of having class hierarchies is to let them delegate themselves
@@ -114,7 +113,7 @@ public class player {
 					q.act();
 				}
 			} catch (Exception e) {
-				Log.d("DEBUG", "act: " + e.getMessage());
+				// unit disssapears for a tick?
 			}
 		}
 
@@ -129,7 +128,7 @@ public class player {
 					unitProgress += 1;
 				}
 			} else if (producingUnitType == unit.TYPE.TROOP) {
-				if (resourceInventory.get(RESOURCES.FOOD) > 5 && resourceInventory.get(RESOURCES.STONE) > 5) {
+				if (resourceInventory.get(RESOURCES.FOOD) > 5 && resourceInventory.get(RESOURCES.STONE) > 0) {
 					// reduce food by 1 and increase progress (20 food to produce, 20 stone)
 					resourceInventory.put(RESOURCES.FOOD, resourceInventory.get(RESOURCES.FOOD) - 0.2);
 					resourceInventory.put(RESOURCES.STONE, resourceInventory.get(RESOURCES.STONE) - 0.2);
@@ -138,7 +137,7 @@ public class player {
 					// if not enough resources: send notification message?
 				}
 			} else if (producingUnitType == unit.TYPE.SETTLER) {
-				if (resourceInventory.get(RESOURCES.FOOD) > 5 && resourceInventory.get(RESOURCES.LUMBER) > 5) {
+				if (resourceInventory.get(RESOURCES.FOOD) > 5 && resourceInventory.get(RESOURCES.LUMBER) > 0) {
 					// reduce food by 1 and increase progress (20 food to produce, 20 stone)
 					resourceInventory.put(RESOURCES.FOOD, resourceInventory.get(RESOURCES.FOOD) - 0.2);
 					resourceInventory.put(RESOURCES.LUMBER, resourceInventory.get(RESOURCES.LUMBER) - 0.2);
@@ -208,39 +207,72 @@ public class player {
 
     // helper for pathfinding
     // implemented in player because context specific (avoiding enemies?)
-    public ArrayList<tile> getPath(tile s, tile f) {
-        ArrayList<tile> answer = new ArrayList<tile>();
-        // build list of tiles INCLUDING START TILE, and INCLUDING FINISH TILE
-        int iX = s.get_x();
-        int iY = s.get_y();
-		answer.add(g.piece(iX, iY));
-        // keep adding closer tiles until we get there
-        while (true) {
-        	// if x++ then y or y--, if x-- then y or y++
-            if (iX < f.get_x()) {
-            	iX += 1;
-				if (iY > f.get_y()) iY -= 1;
-			} else if (iX > f.get_x()) {
-            	iX -= 1;
-				if (iY < f.get_y()) iY += 1;
-			} else {
-            	// if iX is in line then iY can move either way
-				if (iY > f.get_y()) iY -= 1;
-				else if (iY < f.get_y()) iY += 1;
-			}
+    public ArrayList<tile> getPath(tile s, final tile f) {
+		// build list of tiles INCLUDING START TILE, and INCLUDING FINISH TILE
+		ArrayList<tile> path = new ArrayList<tile>();
+		path.add(s);
+		ArrayList<tile> logPath = buildPath(path, f);
+		return buildPath(path, f);
+	}
 
-            answer.add(g.piece(iX, iY));
-            if (iX == f.get_x() && iY == f.get_y()) break;
-        }
-		//Log.d("Pathfindering", "getPath: " + Integer.toString(s.get_x()) + ", " + Integer.toString(s.get_y()) + " to " + Integer.toString(f.get_x()) + ", " + Integer.toString(f.get_y()) + " of size " + Integer.toString(answer.size()));
-        for (tile t : answer) {
-			//Log.d("Pathfindering", "madePath: " + "(" + t.get_x() + ", " + t.get_y() + ")");
+	// path always has >= 1 elements
+	// if no path possible return empty path? path with only start?
+	// detect no possible path?
+    private ArrayList<tile> buildPath(ArrayList<tile> path, final tile f) {
+		if (path.get(path.size() - 1) == f) return path; // base case path already leads to f
+		// if path goes REALLY BIG, likely unreachable?
+		if (path.size() > g.SIDE_LENGTH * 4) return new ArrayList<tile>(path.subList(0,1));
+
+		ArrayList<tile> nextTiles = new ArrayList<tile>(Arrays.asList(g.adjacent(path.get(path.size() - 1).get_x(), path.get(path.size() - 1).get_y())));
+		// dont check tiles already in path or unaccessible tiles
+		// what happens if non are left? return path of infinite length?
+		ArrayList<tile> nextPath = new ArrayList<tile>();
+		// sort by distance to finish
+		Collections.sort(nextTiles, new Comparator<tile>() {
+			@Override
+			public int compare(tile lt, tile rt) {
+				// comparator is defined inside player, so has access to players class variables?
+				int lt_dist = g.distance(lt, f);
+				int rt_dist = g.distance(rt, f);
+				return lt_dist < rt_dist ? -1 : lt_dist > rt_dist ? 1 : 0;
+				//return Integer.compare(lt_dist, rt_dist);
+			}
+		});
+		int nextPathLength = Integer.MAX_VALUE; // use manual length to track failed path find
+		for (tile t : nextTiles) {
+			// skip tile if already visited
+			if (path.contains(t)) continue;
+			// skip tile if unaccessable
+			if (t.getMovementFactor() <= 0) continue;
+			// skip tile if best potential path is worse than current nextPath
+			if (nextPathLength < path.size() + (g.distance(t, f))) continue;
+
+			// otherwise try using t
+			ArrayList<tile> tryPath = new ArrayList<tile>(path);
+			tryPath.add(t);
+
+			tryPath = buildPath(tryPath, f);
+			// if path with t better than best path so far, remember it.
+			// except if no path was found -> return no path?
+			if (tryPath.size() == 0) continue;
+			if (tryPath.size() > nextPathLength) continue;
+
+			nextPath = tryPath;
+			nextPathLength = tryPath.size() - 1;
+			// 1 possible path is found
+            // to check more optimal paths, need to track all tiles tried
+            // not possible strictly recursively
+			break; // don't look for better path?
 		}
-        return answer;
-    }
+
+		// nextPath will contain path so far merged with path from best tile
+		// or empty path
+		return nextPath;
+	}
 
     // called by units (workers) when they have finished a task and need to be updated with what to do
-    public void getNewOrder(unit u) {
+    public void getNewOrder(final unit u) {
+		if (this != u.owner) return; // onyl give orders to my own units
 	    // delegate depending on what type of unit is asking for an order
         if (u instanceof worker) {
             // if there is no target resource, go home
@@ -260,10 +292,10 @@ public class player {
 				Collections.sort(availableTiles, new Comparator<tile>() {
 					@Override
 					public int compare(tile lt, tile rt) {
-						// comparator is defined inside player, so has access to players class variables?
-						double lt_dist_square = (home_x - lt.get_x())^2 + (home_y - lt.get_y())^2;
-						double rt_dist_square = (home_x - rt.get_x())^2 + (home_y - rt.get_y())^2;
-						return Double.compare(lt_dist_square, rt_dist_square);
+						// find tile closest to current location (usually home)
+						double lt_dist = g.distance(lt, g.piece((int)u.get_location_x(), (int)u.get_location_y()));
+						double rt_dist = g.distance(rt, g.piece((int)u.get_location_x(), (int)u.get_location_y()));
+						return Double.compare(lt_dist, rt_dist);
 					}
 				});
                 for (tile t : availableTiles) {
@@ -408,6 +440,7 @@ public class player {
 			g.piece((int) Math.round(u.get_location_x()), (int) Math.round(u.get_location_y())).remove_unit(u);
 			myUnits.remove(u);
 		} catch (Exception e) {
+			// destroyed
 			Log.d("DEBUG", "destroy_Unit: " + e.getMessage());
 		}
 	}
@@ -483,7 +516,6 @@ public class player {
 		if (HP <= 0) {
 			HP = 0;
 		}
-		Log.d("DEBUG", "takeDamage: " + Double.toString(HP));
 	}
 
 	public void add_expand_tile(tile t) {
@@ -504,7 +536,7 @@ public class player {
 				}
 			}
 		} catch (Exception e) {
-			Log.d("DEBUG", "isTileVisible: " + e.getMessage());
+			// sometimes tiles dissapear for a tick?
 		}
 		return false;
     }
@@ -516,7 +548,7 @@ public class player {
 				}
 			}
 		} catch (Exception e) {
-			Log.d("DEBUG", "isTileOwned: " + e.getMessage());
+			// tile dissapears for a tick?
 		}
         return false;
     }
@@ -529,7 +561,7 @@ public class player {
 				}
 			}
 		} catch (Exception e) {
-			Log.d("DEBUG", "isTileAdjacent: " + e.getMessage());
+			// tile dissapears for a tick?
 		}
 		return false;
 	}

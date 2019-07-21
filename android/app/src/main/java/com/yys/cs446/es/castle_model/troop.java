@@ -20,26 +20,6 @@ public class troop extends unit{
 
 		switch (command) {
 			case STAY:
-				// detect if there are enemies to attack/capture?
-				{
-					ArrayList<unit> unitList = owner.get_grid().piece((int)location_x, (int)location_y).get_units();
-					for (unit u : unitList) {
-						if (u.owner != owner) {
-							location_x = (int)Math.round(location_x);
-							location_y = (int)Math.round(location_y);
-							command = Command.COMBAT;
-							break;
-						}
-					}
-					tile myTile = owner.get_grid().piece((int)Math.round(location_x), (int)Math.round(location_y));
-					if (myTile.getType() == tile.TILETYPE.CITY && myTile.get_owner() != owner) {
-						location_x = (int)Math.round(location_x);
-						location_y = (int)Math.round(location_y);
-						command = Command.COMBAT;
-						break;
-					}
-				}
-				// else
 				owner.getNewOrder(this);
 				// after moving troop will detect enemies and switch to combat mode
 
@@ -48,20 +28,24 @@ public class troop extends unit{
 				// super does movement work
                 //check for enemies on this tile before leaving
                 {
-                    ArrayList<unit> unitList = owner.get_grid().piece((int)Math.round(location_x), (int)Math.round(location_y)).get_units();
+					// only if tile is in defended area interupt movement
+					if (!(owner instanceof AI) && !owner.getDefendedTiles().contains(path.get(0))) {
+						return;
+					}
+
+                    ArrayList<unit> unitList = path.get(0).get_units();
                     for (unit u : unitList) {
                         if (u.owner != owner) {
                             //reset to tile and attack
-                            location_x = (int)Math.round(location_x);
-                            location_y = (int)Math.round(location_y);
+							location_x = path.get(0).get_x();
+							location_y = path.get(0).get_y();
                             command = Command.COMBAT;
                             break;
                         }
                     }
-					tile myTile = owner.get_grid().piece((int)Math.round(location_x), (int)Math.round(location_y));
-                    if (myTile.getType() == tile.TILETYPE.CITY && myTile.get_owner() != owner) {
-						location_x = (int)Math.round(location_x);
-						location_y = (int)Math.round(location_y);
+                    if (path.get(0).getType() == tile.TILETYPE.CITY && path.get(0).get_owner() != owner) {
+						location_x = path.get(0).get_x();
+						location_y = path.get(0).get_y();
 						command = Command.COMBAT;
 						break;
 					}
@@ -76,6 +60,14 @@ public class troop extends unit{
 				// if settler/worker capture them
 				int effectiveX = (int)Math.round(location_x);
 				int effectiveY = (int)Math.round(location_y);
+
+				// if defended tiles has changed get out (RETREAT)
+				// AI troops cannot retreat (should subclass for AI troops then?)
+				if (!(owner instanceof AI) && !owner.getDefendedTiles().contains(owner.get_grid().piece(effectiveX, effectiveY))) {
+					owner.getNewOrder(this);
+					return;
+				}
+
 				ArrayList<unit> unitList = owner.get_grid().piece(effectiveX, effectiveY).get_units();
 
 				// FIRST check for enemy troops
@@ -94,7 +86,7 @@ public class troop extends unit{
 					return;
 				}
 				// no units were attacked therefore just switch to STAY
-				command = Command.STAY;
+				command = Command.MOVE;
 				break;
 		}
 	}

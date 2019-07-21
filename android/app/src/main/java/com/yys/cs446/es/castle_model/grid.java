@@ -35,7 +35,7 @@ public class grid {
 		// generate type 0 map
 		switch(mapVersion) {
 			default:
-				SIDE_LENGTH = 18;
+				SIDE_LENGTH = 21;
 				tiles = new tile[SIDE_LENGTH][SIDE_LENGTH];
 
 				for (int x = 0; x < SIDE_LENGTH; ++x) {
@@ -43,24 +43,24 @@ public class grid {
 						// create mountains on edges of hex
 						if (x == 0 && y > SIDE_LENGTH/2 || x == SIDE_LENGTH - 1 && y < SIDE_LENGTH/2
 								|| y == 0 && x > SIDE_LENGTH/2 || y == SIDE_LENGTH - 1 && x < SIDE_LENGTH/2
-								|| x+y == Math.floor(SIDE_LENGTH/2) || x+y == Math.ceil(SIDE_LENGTH * 1.35)) {
+								|| x+y == Math.floor(SIDE_LENGTH/2) || x+y == Math.floor(SIDE_LENGTH*1.45)) {
 							tiles[x][y] = new tile(x,y,0, TILETYPE.MOUNTAIN, this);
-						} else if (x+y < Math.floor(SIDE_LENGTH/2) || x+y > Math.ceil(SIDE_LENGTH * 1.3)) {
+						} else if (x+y < Math.floor(SIDE_LENGTH/2) || x+y > Math.floor(SIDE_LENGTH * 1.45)) {
 							// create empty tiles outside of mountains
 							tiles[x][y] = new tile(x, y, 0, TILETYPE.NONE, this);
 						} else {
 							// randomly assign all inside tiles
 							TILETYPE newType;
 							double d100 = dice.nextDouble() * 100;
-							if (d100 > 85) {
+							if (d100 > 85) { // 15%
 								newType = TILETYPE.WATER;
-							} else if (d100 > 75) {
+							} else if (d100 > 70) { // 15%
 								newType = TILETYPE.GRAIN;
-							} else if (d100 > 65) {
+							} else if (d100 > 60) { // 10%
 								newType = TILETYPE.WOOD;
-							} else if (d100 > 55) {
+							} else if (d100 > 50) { // 10%
 								newType = TILETYPE.STONE;
-							} else {
+							} else {				// 50%
 								newType = TILETYPE.GRASS;
 							}
 							tiles[x][y] = new tile(x, y, 0.2, newType, this);
@@ -84,6 +84,27 @@ public class grid {
 	// no validation?
 	public tile piece(int x, int y) {
 		return tiles[x][y];
+	}
+
+	// return distance on hex grid
+	public int distance(tile s, tile f) {
+		if (s.get_x() == f.get_x() && s.get_y() == f.get_y()) return 0; //base case same tile
+		// otherwise return 1 + dist of closer tile
+		int iX = s.get_x();
+		int iY = s.get_y();
+		if (iX < f.get_x()) {
+			iX += 1;
+			if (iY > f.get_y()) iY -= 1;
+		} else if (iX > f.get_x()) {
+			iX -= 1;
+			if (iY < f.get_y()) iY += 1;
+		} else {
+			// if iX is in line then iY can move either way
+			if (iY > f.get_y()) iY -= 1;
+			else if (iY < f.get_y()) iY += 1;
+		}
+		//iX, iY is next tile (given hex constraints)
+		return 1 + distance(this.piece(iX, iY), f);
 	}
 
 	public boolean add_player(player p) {
@@ -111,15 +132,21 @@ public class grid {
 	}
 
 	// return iterable of tiles around tile[x][y] ??
-	private tile[] adjacent(int x, int y) {
-		tile[] adj = new tile[6];
-		adj[0] = piece(x-1, y+1);
-		adj[1] = piece(x-1, y);
-		adj[2] = piece(x, y-1);
-		adj[3] = piece(x, y+1);
-		adj[4] = piece(x+1, y);
-		adj[5] = piece(x+1, y-1);
-		return adj;
+	public tile[] adjacent(int x, int y) {
+		ArrayList<tile> adj = new ArrayList<tile>();
+		for (int i = -1; i <= 1; i++) {
+			for (int j = -1; j <= 1; j++) {
+				if (Math.abs(i+j) >= 2) continue; // hex constraints
+				if (i==0 && j==0) continue; // dont add center
+				try {
+					adj.add(piece(x+i, y+j));
+				} catch (Exception e) {
+					// dont add, index out of range
+				}
+			}
+		}
+
+		return adj.toArray(new tile[adj.size()]);
 	}
 
 	public int[] getValidSpawnLocation() {

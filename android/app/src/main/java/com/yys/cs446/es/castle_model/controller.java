@@ -28,6 +28,15 @@ public class controller {
         g = new grid();
         state = GAMESTATE.PAUSE;
 
+        initlevel();
+
+        // init states
+        view.update(g, playerOne, state);
+        view.setCamera(playerOne.getHomeCoord()[0], playerOne.getHomeCoord()[1]);
+
+    }
+
+    private void initlevel() {
         //update spawn location to avoid throwing error
         int[] spawn;
         while (true) {
@@ -40,18 +49,17 @@ public class controller {
             }
         }
 
-        playerOne.add_resource(player.RESOURCES.STONE, 100);
+        // default resources
+        playerOne.add_resource(player.RESOURCES.STONE, 30);
         playerOne.add_resource(player.RESOURCES.FOOD, 100);
-        playerOne.add_resource(player.RESOURCES.LUMBER, 100);
-        playerOne.build_unit(unit.TYPE.WORKER);
-        playerOne.build_unit(unit.TYPE.WORKER);
+        playerOne.add_resource(player.RESOURCES.LUMBER, 30);
         playerOne.build_unit(unit.TYPE.WORKER);
 
         //Enemy
         while (true) {
             spawn = g.getValidSpawnLocation();
             try {
-                playerTwo = new player(g, spawn[0], spawn[1]);
+                playerTwo = new AI(g, spawn[0], spawn[1], playerOne);
                 break;
             } catch (Error e) {
                 Log.d("DEBUG:", "controller: Failed to spawn enemy, retrying");
@@ -61,14 +69,9 @@ public class controller {
         playerTwo.add_resource(player.RESOURCES.STONE, 10000);
         playerTwo.add_resource(player.RESOURCES.FOOD, 10000);
         playerTwo.add_resource(player.RESOURCES.LUMBER, 10000);
-        //playerTwo.build_unit(unit.TYPE.TROOP);
-        //playerTwo.build_unit(unit.TYPE.TROOP);
         playerTwo.build_unit(unit.TYPE.TROOP);
-
-        // init states
-        view.update(g, playerOne, state);
-        view.setCamera(playerOne.getHomeCoord()[0], playerOne.getHomeCoord()[1]);
-
+        playerTwo.build_unit(unit.TYPE.TROOP);
+        playerTwo.build_unit(unit.TYPE.TROOP);
     }
 
     // called after constructor (in GameActivity), starts simulation
@@ -150,5 +153,9 @@ public class controller {
                 timer.cancel();
             }
         }
+    }
+
+    public GAMESTATE getState() {
+        return state;
     }
 }
