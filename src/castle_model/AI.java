@@ -3,8 +3,21 @@ package castle_model;
 import java.util.ArrayList;
 
 public class AI extends Player {
-	public AI(Grid G, int x, int y) {
-		super(G, 0, 0, "AI Player");
+	private static int num_AIs = 0;
+
+	public AI(Grid G, int x, int y){
+		String AI_name = "AI Player" + (++ num_AIs);
+		super(G, x, y, AI_name);
+	}
+
+	public AI(Grid G) {
+		int x, y;
+		/* 	for(Tile t : G.get_tiles()){
+		 *		Inpsect all tiles in Grid and pick the optimal location to 
+		 *		spawn.
+		 *	} 
+		 */
+		this(G, x, y);
 	}
 
 	// this function should look at the playground, make decisions and play the
@@ -41,5 +54,22 @@ public class AI extends Player {
 		 * 
 		 * 
 		 */
+		/* LOOK AT THE PLAYGOUND:
+		 
+		 *
+		 * Decision Tree/ Bayes / CSP/ A* making action decisions based on
+		 * game dynamics
+		 */
+        for(Tile t : the_grid().get_tiles()){
+        }
+        
+        for(Player p : the_grid().players){
+        }
+    
+		build_unit(Unit.TYPE.WORKER);
+		build_unit(Unit.TYPE.WORKER);
+		build_unit(Unit.TYPE.SETTLER);
+		expand_territory(g.piece(0,1));
 	}
 }
+
