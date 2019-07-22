@@ -159,10 +159,10 @@ public class GameActivity extends AppCompatActivity implements PopupMenu.OnMenuI
                 gameController.togglePause();
                 break;
             case R.id.options_2:
-
+                Toast.makeText(getApplicationContext(), "API version too low", Toast.LENGTH_SHORT).show();
                 break;
             case R.id.options_3:
-
+                Toast.makeText(getApplicationContext(), "API version too low", Toast.LENGTH_SHORT).show();
                 break;
         }
         return true;

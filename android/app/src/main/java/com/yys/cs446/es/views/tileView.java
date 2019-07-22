@@ -107,7 +107,7 @@ public class tileView extends View {
 
         xPaintText = new Paint(Paint.ANTI_ALIAS_FLAG);
         xPaintText.setColor(Color.WHITE);
-        xPaintText.setTextSize(40);
+        xPaintText.setTextSize(30);
         xPaintText.setTypeface(Typeface.create("Arial", Typeface.NORMAL));
 
         //load original Tile Bitmaps
@@ -428,9 +428,10 @@ public class tileView extends View {
         }
 
         double textOffset = xPaintText.getTextSize() * 1.3;
-        canvas.drawRect(10, 10, xPaintText.getTextSize()*7 +10, (float)(textOffset*(myPlayer.getResourceInventory().size()-1)) + 10, xPaintSquare);
+        canvas.drawRect(10, xPaintText.getTextSize()/4, xPaintText.getTextSize()*7 +10, (float)(textOffset*(myPlayer.getResourceInventory().size()-1)) + 10, xPaintSquare);
 
         // loop through player resourceInventory and print key: values
+        xPaintText.setTextSize(getHeight()/30);
         for (RESOURCES r : myPlayer.getResourceInventory().keySet()) {
             if (r == RESOURCES.NONE) continue;
             canvas.drawText(r.toString() + ": " + (int)Math.floor(myPlayer.getResourceInventory().get(r)), 20, (float)textOffset, xPaintText);
